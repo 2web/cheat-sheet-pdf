@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Шпаргалка по Docker</title>
+<link rel="stylesheet" href="cheatsheet.css">
+</head>
+<body>
+<h1>Шпаргалка по Docker</h1>
+<p class="lead">Контейнеры и образы, сборка, тома и сети, Compose, диагностика и уборка мусора. Вместо значений в угловых скобках подставьте свои.</p>
+
+<div class="cols">
+
+<section>
+<h2>Запуск контейнеров</h2>
+<dl>
+  <dt>docker run &lt;образ&gt;</dt>
+  <dd>Создать и запустить контейнер; образ при необходимости скачается</dd>
+  <dt>docker run -d --name web -p 8080:80 nginx</dt>
+  <dd>В фоне, с именем, порт 8080 хоста на 80 внутри контейнера</dd>
+  <dt>docker run -it --rm ubuntu bash</dt>
+  <dd>Интерактивно с терминалом; после выхода контейнер удаляется</dd>
+  <dt>docker run -e KEY=value -v $PWD:/app -w /app node:20 npm test</dt>
+  <dd>Переменная окружения, текущий каталог внутрь контейнера, рабочий каталог и команда</dd>
+  <dt>docker run --restart unless-stopped ...</dt>
+  <dd>Перезапускать после сбоя и после перезагрузки хоста</dd>
+</dl>
+</section>
+
+<section>
+<h2>Жизненный цикл</h2>
+<dl>
+  <dt>docker ps / docker ps -a</dt>
+  <dd>Запущенные контейнеры; с ключом — все, включая остановленные</dd>
+  <dt>docker stop &lt;имя&gt; / docker start &lt;имя&gt;</dt>
+  <dd>Остановить (сигнал SIGTERM, через 10 с — SIGKILL) и запустить снова</dd>
+  <dt>docker restart &lt;имя&gt;</dt>
+  <dd>Перезапуск</dd>
+  <dt>docker rm &lt;имя&gt;</dt>
+  <dd>Удалить остановленный контейнер (<code>-f</code> — принудительно)</dd>
+  <dt>docker rename &lt;старое&gt; &lt;новое&gt;</dt>
+  <dd>Переименовать</dd>
+</dl>
+</section>
+
+<section>
+<h2>Заглянуть внутрь</h2>
+<dl>
+  <dt>docker logs -f --tail 100 &lt;имя&gt;</dt>
+  <dd>Журнал контейнера в реальном времени, последние 100 строк</dd>
+  <dt>docker exec -it &lt;имя&gt; sh</dt>
+  <dd>Открыть оболочку в работающем контейнере</dd>
+  <dt>docker inspect &lt;имя&gt;</dt>
+  <dd>Полные сведения в JSON: сети, тома, переменные, состояние</dd>
+  <dt>docker stats</dt>
+  <dd>Потребление процессора, памяти и сети в реальном времени</dd>
+  <dt>docker top &lt;имя&gt;</dt>
+  <dd>Процессы внутри контейнера</dd>
+  <dt>docker cp &lt;имя&gt;:/путь ./локальный</dt>
+  <dd>Скопировать файлы из контейнера и обратно</dd>
+</dl>
+</section>
+
+<section>
+<h2>Образы</h2>
+<dl>
+  <dt>docker images</dt>
+  <dd>Список локальных образов</dd>
+  <dt>docker pull &lt;образ&gt;:&lt;тег&gt;</dt>
+  <dd>Скачать образ из реестра</dd>
+  <dt>docker build -t myapp:1.0 .</dt>
+  <dd>Собрать образ из Dockerfile в текущем каталоге</dd>
+  <dt>docker build --no-cache --build-arg VER=1.2 .</dt>
+  <dd>Сборка без кеша слоёв и с передачей аргумента</dd>
+  <dt>docker tag myapp:1.0 registry.example.com/myapp:1.0</dt>
+  <dd>Добавить имя для публикации в реестр</dd>
+  <dt>docker push registry.example.com/myapp:1.0</dt>
+  <dd>Отправить образ в реестр (перед этим <code>docker login</code>)</dd>
+  <dt>docker history &lt;образ&gt;</dt>
+  <dd>Слои образа и их размер — видно, что раздувает сборку</dd>
+  <dt>docker save / docker load</dt>
+  <dd>Выгрузить образ в архив и загрузить на другой машине</dd>
+</dl>
+</section>
+
+<section>
+<h2>Dockerfile: основные инструкции</h2>
+<dl>
+  <dt>FROM node:20-alpine</dt>
+  <dd>Базовый образ; несколько FROM — многоэтапная сборка</dd>
+  <dt>WORKDIR /app</dt>
+  <dd>Рабочий каталог для последующих инструкций</dd>
+  <dt>COPY package*.json ./</dt>
+  <dd>Копирование файлов; сначала зависимости — тогда кеш слоёв срабатывает чаще</dd>
+  <dt>RUN npm ci --omit=dev</dt>
+  <dd>Команда на этапе сборки; каждая создаёт слой</dd>
+  <dt>ENV NODE_ENV=production</dt>
+  <dd>Переменная окружения в итоговом образе</dd>
+  <dt>EXPOSE 3000</dt>
+  <dd>Документирует порт; сам по себе ничего не публикует</dd>
+  <dt>USER node</dt>
+  <dd>Не запускать приложение от root</dd>
+  <dt>HEALTHCHECK CMD wget -qO- localhost:3000/health || exit 1</dt>
+  <dd>Проверка работоспособности контейнера</dd>
+  <dt>ENTRYPOINT ["node"] / CMD ["server.js"]</dt>
+  <dd>Неизменяемая часть команды и аргументы по умолчанию</dd>
+</dl>
+<pre># Многоэтапная сборка
+FROM golang:1.22 AS build
+WORKDIR /src
+COPY . .
+RUN go build -o /app ./cmd/server
+
+FROM gcr.io/distroless/base
+COPY --from=build /app /app
+CMD ["/app"]</pre>
+</section>
+
+<section>
+<h2>Тома и данные</h2>
+<dl>
+  <dt>docker volume create data</dt>
+  <dd>Создать именованный том — предпочтительный способ хранить состояние</dd>
+  <dt>docker run -v data:/var/lib/postgresql/data postgres:16</dt>
+  <dd>Подключить том в контейнер</dd>
+  <dt>docker run -v $PWD/src:/app/src:ro ...</dt>
+  <dd>Каталог хоста внутрь контейнера, только для чтения</dd>
+  <dt>docker volume ls / inspect / rm</dt>
+  <dd>Список, сведения, удаление</dd>
+</dl>
+<p class="warn"><b>Осторожно:</b> данные в файловой системе контейнера исчезают вместе с ним. Всё, что нужно сохранить, держите в томах.</p>
+</section>
+
+<section>
+<h2>Сети</h2>
+<dl>
+  <dt>docker network create app-net</dt>
+  <dd>Своя сеть; контейнеры в ней видят друг друга по именам</dd>
+  <dt>docker run --network app-net --name db postgres:16</dt>
+  <dd>Подключение при запуске: соседи обращаются к нему по имени <code>db</code></dd>
+  <dt>docker network connect app-net &lt;контейнер&gt;</dt>
+  <dd>Подключить уже работающий контейнер</dd>
+  <dt>-p 127.0.0.1:5432:5432</dt>
+  <dd>Опубликовать порт только на локальный интерфейс, а не наружу</dd>
+</dl>
+</section>
+
+<section>
+<h2>Docker Compose</h2>
+<dl>
+  <dt>docker compose up -d</dt>
+  <dd>Поднять описанные сервисы в фоне</dd>
+  <dt>docker compose up -d --build</dt>
+  <dd>Пересобрать образы перед запуском</dd>
+  <dt>docker compose ps / logs -f [сервис]</dt>
+  <dd>Состояние и журналы</dd>
+  <dt>docker compose exec &lt;сервис&gt; sh</dt>
+  <dd>Оболочка внутри сервиса</dd>
+  <dt>docker compose down</dt>
+  <dd>Остановить и удалить контейнеры и сети (<code>-v</code> — вместе с томами)</dd>
+  <dt>docker compose config</dt>
+  <dd>Показать итоговый файл с подставленными переменными</dd>
+</dl>
+<pre>services:
+  web:
+    build: .
+    ports: ["8080:3000"]
+    environment:
+      DATABASE_URL: postgres://app@db/app
+    depends_on: [db]
+  db:
+    image: postgres:16
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+volumes:
+  pgdata:</pre>
+</section>
+
+<section>
+<h2>Уборка</h2>
+<dl>
+  <dt>docker system df</dt>
+  <dd>Сколько места занимают образы, контейнеры, тома и кеш сборки</dd>
+  <dt>docker container prune</dt>
+  <dd>Удалить все остановленные контейнеры</dd>
+  <dt>docker image prune -a</dt>
+  <dd>Удалить образы, не используемые ни одним контейнером</dd>
+  <dt>docker builder prune</dt>
+  <dd>Очистить кеш сборки — обычно он и занимает больше всего</dd>
+  <dt>docker system prune -a --volumes</dt>
+  <dd>Полная уборка вместе с томами</dd>
+</dl>
+<p class="warn"><b>Осторожно:</b> <code>--volumes</code> удаляет данные, не привязанные к запущенным контейнерам. Проверьте <code>docker volume ls</code> заранее.</p>
+</section>
+
+<section>
+<h2>Когда что-то не работает</h2>
+<ul class="gloss">
+  <li>Контейнер сразу завершился — <code>docker logs</code> и <code>docker inspect --format '{{.State.ExitCode}}'</code>.</li>
+  <li>Порт занят — <code>ss -ltnp</code> на хосте; публикуйте другой порт.</li>
+  <li>Приложение не видит соседа — контейнеры должны быть в одной сети, обращение по имени сервиса, а не по localhost.</li>
+  <li>Права на файлы в томе — сверьте UID процесса в контейнере и владельца каталога на хосте.</li>
+  <li>Образ слишком большой — <code>docker history</code>, многоэтапная сборка, <code>.dockerignore</code>.</li>
+</ul>
+</section>
+
+</div>
+
+<footer>Оригинальная шпаргалка на русском языке для репозитория 2web/cheat-sheet-pdf.</footer>
+</body>
+</html>

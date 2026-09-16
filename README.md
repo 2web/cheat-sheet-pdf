@@ -46,14 +46,17 @@
 
 ### Nginx :whale:
 * [Nginx](pdf/nginx.pdf): Nginx — программное обеспечение с открытым исходным кодом для веб-сервера, обратного проксирования, кеширования, балансировки нагрузки, потоковой передачи медиа и многого другого.
+* [Шпаргалка по Nginx на русском](pdf/nginx-cheatsheet-ru.pdf): оригинальная русскоязычная шпаргалка — управление сервисом, статика, проксирование, HTTPS, балансировка и диагностика.
 
 ### Docker :whale:
 * [Docker](pdf/docker.pdf): Docker — инструмент, который упрощает создание, развёртывание и запуск приложений в контейнерах.
 * [Docker от JRebel](pdf/docker_by_jrebel.pdf)
 * [Безопасность Docker](pdf/docker-security.pdf)
+* [Шпаргалка по Docker на русском](pdf/docker-cheatsheet-ru.pdf): оригинальная русскоязычная шпаргалка — контейнеры, образы, Dockerfile, тома, сети, Compose и уборка.
 
 ### Ansible :hammer_and_wrench:
 * [Ansible](pdf/ansible.pdf): Ansible — самый простой способ автоматизировать приложения и IT-инфраструктуру.
+* [Шпаргалка по Ansible на русском](pdf/ansible-cheatsheet-ru.pdf): оригинальная русскоязычная шпаргалка — инвентарь, плейбуки, модули, переменные, роли, Vault и отладка.
 
 ### Python :snake:
 * [Python 3 — основы](pdf/cheatsheet-python-grok.pdf)

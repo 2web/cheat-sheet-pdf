@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Шпаргалка по Ansible</title>
+<link rel="stylesheet" href="cheatsheet.css">
+</head>
+<body>
+<h1>Шпаргалка по Ansible</h1>
+<p class="lead">Инвентарь, разовые команды, плейбуки, переменные и роли, шаблоны и секреты, отладка. Ansible работает по SSH и не требует агента на управляемых узлах.</p>
+
+<div class="cols">
+
+<section>
+<h2>Инвентарь</h2>
+<p class="note">Список узлов и групп. Формат INI или YAML, файл по умолчанию — <code>/etc/ansible/hosts</code>, обычно же его кладут рядом с плейбуками.</p>
+<pre>[web]
+web1.example.com
+web2.example.com ansible_port=2222
+
+[db]
+db1.example.com
+
+[prod:children]
+web
+db
+
+[all:vars]
+ansible_user=deploy</pre>
+<dl>
+  <dt>ansible-inventory -i hosts --list</dt>
+  <dd>Показать разобранный инвентарь со всеми переменными</dd>
+  <dt>ansible-inventory -i hosts --graph</dt>
+  <dd>Дерево групп и узлов</dd>
+</dl>
+</section>
+
+<section>
+<h2>Разовые команды</h2>
+<dl>
+  <dt>ansible all -i hosts -m ping</dt>
+  <dd>Проверить связь и вход по SSH на всех узлах</dd>
+  <dt>ansible web -a "uptime"</dt>
+  <dd>Выполнить команду на группе (модуль command по умолчанию)</dd>
+  <dt>ansible all -m shell -a "df -h | tail -5"</dt>
+  <dd>Модуль shell — когда нужны конвейеры и перенаправления</dd>
+  <dt>ansible db -m ansible.builtin.service -a "name=postgresql state=restarted" -b</dt>
+  <dd>Перезапуск службы с повышением прав (<code>-b</code> — become)</dd>
+  <dt>ansible all -m setup -a "filter=ansible_distribution*"</dt>
+  <dd>Собрать факты об узлах и отфильтровать нужные</dd>
+</dl>
+</section>
+
+<section>
+<h2>Запуск плейбуков</h2>
+<dl>
+  <dt>ansible-playbook -i hosts site.yml</dt>
+  <dd>Обычный запуск</dd>
+  <dt>--check</dt>
+  <dd>Пробный прогон: показать, что изменится, ничего не меняя</dd>
+  <dt>--diff</dt>
+  <dd>Показать построчную разницу изменяемых файлов</dd>
+  <dt>--limit web1.example.com</dt>
+  <dd>Ограничить выполнение узлом или группой</dd>
+  <dt>--tags deploy / --skip-tags slow</dt>
+  <dd>Выполнить или пропустить помеченные задачи</dd>
+  <dt>--start-at-task "Установка пакетов"</dt>
+  <dd>Начать с конкретной задачи</dd>
+  <dt>-e "version=1.4.2"</dt>
+  <dd>Передать переменную; такие значения перекрывают все остальные</dd>
+  <dt>-K / -k</dt>
+  <dd>Спросить пароль sudo; спросить пароль SSH</dd>
+</dl>
+</section>
+
+<section>
+<h2>Плейбук</h2>
+<pre>- name: Настройка веб-серверов
+  hosts: web
+  become: true
+  vars:
+    app_port: 8080
+  tasks:
+    - name: Установить nginx
+      ansible.builtin.package:
+        name: nginx
+        state: present
+
+    - name: Положить конфигурацию
+      ansible.builtin.template:
+        src: site.conf.j2
+        dest: /etc/nginx/conf.d/site.conf
+        mode: "0644"
+      notify: Перезагрузить nginx
+
+    - name: Служба запущена и включена
+      ansible.builtin.service:
+        name: nginx
+        state: started
+        enabled: true
+
+  handlers:
+    - name: Перезагрузить nginx
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded</pre>
+</section>
+
+<section>
+<h2>Частые модули</h2>
+<dl>
+  <dt>package / apt / dnf</dt>
+  <dd>Установка пакетов; <code>package</code> не зависит от дистрибутива</dd>
+  <dt>copy / template</dt>
+  <dd>Скопировать файл; второй прогоняет его через шаблонизатор Jinja2</dd>
+  <dt>file</dt>
+  <dd>Каталоги, права, владелец, символьные ссылки, удаление</dd>
+  <dt>lineinfile / blockinfile</dt>
+  <dd>Правка строки или блока в существующем файле</dd>
+  <dt>user / group</dt>
+  <dd>Учётные записи и группы</dd>
+  <dt>git</dt>
+  <dd>Выкачать репозиторий на узел</dd>
+  <dt>uri</dt>
+  <dd>HTTP-запрос: проверки работоспособности и вызовы API</dd>
+  <dt>command / shell</dt>
+  <dd>Произвольная команда; для shell доступны конвейеры и переменные оболочки</dd>
+</dl>
+</section>
+
+<section>
+<h2>Переменные и факты</h2>
+<dl>
+  <dt>group_vars/&lt;группа&gt;.yml, host_vars/&lt;узел&gt;.yml</dt>
+  <dd>Переменные групп и отдельных узлов — основной способ хранения настроек</dd>
+  <dt>{{ переменная }}</dt>
+  <dd>Подстановка в задачах и шаблонах</dd>
+  <dt>{{ ansible_facts['distribution'] }}</dt>
+  <dd>Факты, собранные с узла: система, адреса, память, диски</dd>
+  <dt>register: result</dt>
+  <dd>Сохранить результат задачи, затем <code>result.stdout</code>, <code>result.rc</code></dd>
+  <dt>when: ansible_facts['os_family'] == "Debian"</dt>
+  <dd>Условное выполнение</dd>
+  <dt>loop: [nginx, curl, htop]</dt>
+  <dd>Повтор задачи для каждого элемента (<code>item</code>)</dd>
+  <dt>| default("значение")</dt>
+  <dd>Значение по умолчанию, если переменная не задана</dd>
+</dl>
+<p class="note"><b>Приоритет (от слабого к сильному):</b> роли → inventory → group_vars → host_vars → переменные плейбука → <code>-e</code> в командной строке.</p>
+</section>
+
+<section>
+<h2>Роли</h2>
+<p class="note">Роль — стандартная раскладка каталогов, которую можно повторно использовать и выкладывать в Galaxy.</p>
+<pre>roles/webserver/
+├── tasks/main.yml
+├── handlers/main.yml
+├── templates/site.conf.j2
+├── files/
+├── vars/main.yml
+├── defaults/main.yml
+└── meta/main.yml</pre>
+<dl>
+  <dt>ansible-galaxy init roles/webserver</dt>
+  <dd>Создать заготовку роли</dd>
+  <dt>ansible-galaxy install -r requirements.yml</dt>
+  <dd>Установить сторонние роли и коллекции</dd>
+  <dt>roles: [webserver]</dt>
+  <dd>Подключение роли в плейбуке</dd>
+</dl>
+<p class="note"><code>defaults/</code> — значения, которые предполагается переопределять; <code>vars/</code> — те, что менять не нужно.</p>
+</section>
+
+<section>
+<h2>Секреты: Ansible Vault</h2>
+<dl>
+  <dt>ansible-vault create secrets.yml</dt>
+  <dd>Создать зашифрованный файл</dd>
+  <dt>ansible-vault edit secrets.yml</dt>
+  <dd>Редактировать с расшифровкой на лету</dd>
+  <dt>ansible-vault encrypt_string "пароль" --name db_password</dt>
+  <dd>Зашифровать одно значение для вставки в обычный YAML</dd>
+  <dt>ansible-playbook site.yml --ask-vault-pass</dt>
+  <dd>Спросить пароль при запуске</dd>
+  <dt>--vault-password-file ~/.vault_pass</dt>
+  <dd>Взять пароль из файла — удобно в CI</dd>
+</dl>
+</section>
+
+<section>
+<h2>Проверка и отладка</h2>
+<dl>
+  <dt>ansible-lint site.yml</dt>
+  <dd>Проверка стиля и типичных ошибок</dd>
+  <dt>ansible-playbook --syntax-check site.yml</dt>
+  <dd>Только разбор синтаксиса</dd>
+  <dt>-v / -vvv</dt>
+  <dd>Подробный вывод; три уровня показывают и команды SSH</dd>
+  <dt>ansible.builtin.debug: var=result</dt>
+  <dd>Вывести значение переменной по ходу выполнения</dd>
+  <dt>ansible.builtin.assert: that: ...</dt>
+  <dd>Остановить выполнение, если условие не выполнено</dd>
+  <dt>ANSIBLE_STDOUT_CALLBACK=yaml</dt>
+  <dd>Читаемый многострочный вывод результатов</dd>
+</dl>
+</section>
+
+<section>
+<h2>Полезно помнить</h2>
+<ul class="gloss">
+  <li><b>Идемпотентность</b> — повторный запуск не должен ничего менять. Модули это обеспечивают, <code>command</code> и <code>shell</code> — нет, им помогают <code>creates=</code> и <code>changed_when</code>.</li>
+  <li><b>Handlers</b> выполняются один раз в конце игры и только если задача что-то изменила.</li>
+  <li><b>ansible.cfg</b> в каталоге проекта задаёт инвентарь, пользователя и параметры SSH — меньше ключей в командной строке.</li>
+  <li><b>Полные имена модулей</b> (<code>ansible.builtin.copy</code>) устойчивее коротких, особенно при использовании коллекций.</li>
+</ul>
+</section>
+
+</div>
+
+<footer>Оригинальная шпаргалка на русском языке для репозитория 2web/cheat-sheet-pdf.</footer>
+</body>
+</html>
