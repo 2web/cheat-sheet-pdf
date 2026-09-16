@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Шпаргалка по Nginx</title>
+<link rel="stylesheet" href="cheatsheet.css">
+</head>
+<body>
+<h1>Шпаргалка по Nginx</h1>
+<p class="lead">Управление сервисом, устройство конфигурации, типовые блоки для статики, проксирования, HTTPS и балансировки, а также приёмы диагностики. Значения в угловых скобках замените своими.</p>
+
+<div class="cols">
+
+<section>
+<h2>Управление сервисом</h2>
+<dl>
+  <dt>nginx -t</dt>
+  <dd>Проверить конфигурацию на ошибки, ничего не применяя. Делайте это перед каждой перезагрузкой</dd>
+  <dt>nginx -T</dt>
+  <dd>Вывести итоговую конфигурацию целиком, со всеми подключёнными файлами</dd>
+  <dt>systemctl reload nginx</dt>
+  <dd>Применить новую конфигурацию без разрыва текущих соединений</dd>
+  <dt>systemctl restart nginx</dt>
+  <dd>Полный перезапуск: соединения обрываются</dd>
+  <dt>nginx -s quit</dt>
+  <dd>Мягкая остановка: дождаться завершения запросов</dd>
+  <dt>nginx -v / nginx -V</dt>
+  <dd>Версия; с заглавной — ещё и параметры сборки и список модулей</dd>
+</dl>
+</section>
+
+<section>
+<h2>Где что лежит</h2>
+<dl>
+  <dt>/etc/nginx/nginx.conf</dt>
+  <dd>Главный файл: глобальные настройки и блок http</dd>
+  <dt>/etc/nginx/conf.d/*.conf</dt>
+  <dd>Подключаемые конфигурации сайтов</dd>
+  <dt>/etc/nginx/sites-available и sites-enabled</dt>
+  <dd>Схема Debian/Ubuntu: файл создаётся в первом каталоге, символьная ссылка во втором включает сайт</dd>
+  <dt>/var/log/nginx/access.log, error.log</dt>
+  <dd>Журналы запросов и ошибок по умолчанию</dd>
+</dl>
+</section>
+
+<section>
+<h2>Структура конфигурации</h2>
+<p class="note">Директивы живут в блоках (контекстах) и наследуются сверху вниз: <code>main → http → server → location</code>.</p>
+<pre>http {
+    server {
+        listen 80;
+        server_name example.com;
+        root /var/www/example;
+
+        location / {
+            try_files $uri $uri/ =404;
+        }
+    }
+}</pre>
+</section>
+
+<section>
+<h2>Отдача статики</h2>
+<dl>
+  <dt>root /var/www/site;</dt>
+  <dd>Корень: путь запроса приписывается к нему целиком</dd>
+  <dt>alias /var/www/assets/;</dt>
+  <dd>Подмена пути: часть URL из location отбрасывается</dd>
+  <dt>index index.html;</dt>
+  <dd>Файл, который отдаётся при запросе каталога</dd>
+  <dt>try_files $uri $uri/ /index.html;</dt>
+  <dd>Искать файл, затем каталог, иначе отдать указанный файл. Обычная схема для SPA</dd>
+  <dt>expires 30d;</dt>
+  <dd>Заголовки кеширования для браузера</dd>
+  <dt>gzip on; gzip_types text/css application/json;</dt>
+  <dd>Сжатие ответов указанных типов</dd>
+</dl>
+</section>
+
+<section>
+<h2>Как выбирается location</h2>
+<dl>
+  <dt>location = /path</dt>
+  <dd>Точное совпадение, наивысший приоритет</dd>
+  <dt>location ^~ /static/</dt>
+  <dd>Префикс; при совпадении регулярные выражения не проверяются</dd>
+  <dt>location ~ \.php$</dt>
+  <dd>Регулярное выражение с учётом регистра (<code>~*</code> — без учёта)</dd>
+  <dt>location /</dt>
+  <dd>Префикс по умолчанию: подходит, когда не подошло ничего точнее</dd>
+</dl>
+</section>
+
+<section>
+<h2>Обратное проксирование</h2>
+<pre>location /api/ {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}</pre>
+<dl>
+  <dt>proxy_read_timeout 60s;</dt>
+  <dd>Сколько ждать ответа от приложения</dd>
+  <dt>proxy_buffering off;</dt>
+  <dd>Отдавать ответ потоком — нужно для SSE и длинных запросов</dd>
+  <dt>client_max_body_size 50m;</dt>
+  <dd>Предел размера тела запроса; при загрузке файлов ошибка 413 лечится здесь</dd>
+</dl>
+<p class="note">Косая черта в конце <code>proxy_pass</code> меняет поведение: с ней префикс location отбрасывается, без неё путь передаётся как есть.</p>
+</section>
+
+<section>
+<h2>WebSocket</h2>
+<pre>location /ws/ {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+}</pre>
+</section>
+
+<section>
+<h2>HTTPS</h2>
+<pre>server {
+    listen 443 ssl;
+    http2 on;
+    server_name example.com;
+
+    ssl_certificate     /etc/letsencrypt/live/example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+}
+
+server {
+    listen 80;
+    server_name example.com;
+    return 301 https://$host$request_uri;
+}</pre>
+<p class="note">В версиях до 1.25 второй строкой писали <code>listen 443 ssl http2;</code>.</p>
+</section>
+
+<section>
+<h2>Балансировка нагрузки</h2>
+<pre>upstream backend {
+    least_conn;
+    server 10.0.0.11:8080 weight=2;
+    server 10.0.0.12:8080;
+    server 10.0.0.13:8080 backup;
+    keepalive 32;
+}</pre>
+<dl>
+  <dt>least_conn / ip_hash</dt>
+  <dd>По числу активных соединений; по хешу адреса клиента — запросы одного клиента идут на один сервер</dd>
+  <dt>max_fails=3 fail_timeout=30s</dt>
+  <dd>Через сколько неудач и на какое время сервер считается недоступным</dd>
+</dl>
+</section>
+
+<section>
+<h2>Перенаправления и коды ответа</h2>
+<dl>
+  <dt>return 301 https://$host$request_uri;</dt>
+  <dd>Постоянное перенаправление — самый дешёвый способ</dd>
+  <dt>rewrite ^/old/(.*)$ /new/$1 permanent;</dt>
+  <dd>Перенаправление с преобразованием пути</dd>
+  <dt>return 444;</dt>
+  <dd>Закрыть соединение без ответа — удобно против мусорных запросов</dd>
+  <dt>error_page 404 /404.html;</dt>
+  <dd>Своя страница для кода ошибки</dd>
+</dl>
+</section>
+
+<section>
+<h2>Ограничения и доступ</h2>
+<dl>
+  <dt>limit_req_zone $binary_remote_addr zone=lim:10m rate=10r/s;</dt>
+  <dd>Объявление зоны ограничения частоты запросов (в блоке http)</dd>
+  <dt>limit_req zone=lim burst=20 nodelay;</dt>
+  <dd>Применение зоны в location с допуском всплесков</dd>
+  <dt>limit_conn_zone / limit_conn</dt>
+  <dd>То же для числа одновременных соединений</dd>
+  <dt>allow 10.0.0.0/8; deny all;</dt>
+  <dd>Доступ по адресам: правила проверяются по порядку</dd>
+  <dt>auth_basic "Закрытая зона"; auth_basic_user_file /etc/nginx/.htpasswd;</dt>
+  <dd>Простая парольная защита</dd>
+</dl>
+</section>
+
+<section>
+<h2>Журналы и диагностика</h2>
+<dl>
+  <dt>access_log /var/log/nginx/site.log combined;</dt>
+  <dd>Отдельный журнал для сайта; <code>off</code> отключает запись</dd>
+  <dt>log_format ext '$remote_addr $status $request_time';</dt>
+  <dd>Свой формат: <code>$request_time</code> показывает медленные запросы</dd>
+  <dt>error_log /var/log/nginx/error.log warn;</dt>
+  <dd>Уровни: debug, info, notice, warn, error, crit</dd>
+  <dt>tail -f /var/log/nginx/error.log</dt>
+  <dd>Смотреть ошибки в реальном времени</dd>
+  <dt>curl -I -H "Host: example.com" localhost</dt>
+  <dd>Проверить, какой server-блок отвечает, не трогая DNS</dd>
+  <dt>ss -ltnp | grep nginx</dt>
+  <dd>На каких портах слушает сервер</dd>
+</dl>
+</section>
+
+<section>
+<h2>Полезные переменные</h2>
+<ul class="gloss">
+  <li><b>$host</b> — имя из заголовка Host или из server_name.</li>
+  <li><b>$uri</b> — путь запроса после нормализации, без строки параметров.</li>
+  <li><b>$request_uri</b> — исходный путь вместе с параметрами.</li>
+  <li><b>$args</b> — строка параметров запроса.</li>
+  <li><b>$remote_addr</b> — адрес клиента, <b>$scheme</b> — http или https.</li>
+  <li><b>$upstream_addr</b>, <b>$upstream_status</b> — куда ушёл запрос и что ответило приложение.</li>
+</ul>
+</section>
+
+</div>
+
+<footer>Оригинальная шпаргалка на русском языке для репозитория 2web/cheat-sheet-pdf.</footer>
+</body>
+</html>
