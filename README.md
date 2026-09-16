@@ -65,6 +65,7 @@
 ### Git :octocat:
 * [Git от Atlassian](pdf/atlassian-git-cheatsheet.pdf)
 * [Git от GitHub](pdf/git_by_github.pdf)
+* [Шпаргалка по Git на русском](pdf/git-cheatsheet-ru.pdf): оригинальная русскоязычная шпаргалка — настройка, ветки, история, обмен с удалённым репозиторием и откат ошибок.
 * [Git от Git-Tower](pdf/git_by_git-tower.pdf)
 * [Git/GitHub — Pull Request](pdf/github.pdf)
 
