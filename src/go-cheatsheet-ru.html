@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Шпаргалка по Go</title>
+<link rel="stylesheet" href="cheatsheet.css">
+</head>
+<body>
+<h1>Шпаргалка по Go</h1>
+<p class="lead">Синтаксис, срезы и карты, ошибки, структуры и интерфейсы, горутины и каналы, модули и инструменты командной строки. Примеры для Go 1.21 и новее.</p>
+
+<div class="cols">
+
+<section>
+<h2>Первая программа</h2>
+<pre>package main
+
+import "fmt"
+
+func main() {
+    fmt.Println("Привет")
+}</pre>
+<dl>
+  <dt>go run .</dt>
+  <dd>Собрать и сразу выполнить пакет в текущем каталоге</dd>
+  <dt>go build ./...</dt>
+  <dd>Собрать все пакеты проекта</dd>
+  <dt>go mod init example.com/app</dt>
+  <dd>Создать модуль: появляется go.mod</dd>
+</dl>
+</section>
+
+<section>
+<h2>Переменные и типы</h2>
+<dl>
+  <dt>var x int = 10</dt>
+  <dd>Полная форма объявления</dd>
+  <dt>y := 10</dt>
+  <dd>Короткая форма с выводом типа, только внутри функций</dd>
+  <dt>const Limit = 100</dt>
+  <dd>Константа, вычисляется на этапе компиляции</dd>
+  <dt>int, int64, float64, bool, string, byte, rune</dt>
+  <dd>Базовые типы; rune — символ Unicode, byte — то же, что uint8</dd>
+  <dt>var p *int = &amp;x; fmt.Println(*p)</dt>
+  <dd>Указатель: взятие адреса и разыменование</dd>
+  <dt>type UserID int</dt>
+  <dd>Свой тип на основе существующего</dd>
+</dl>
+<p class="note">Нулевые значения: 0 для чисел, "" для строк, false для bool, nil для указателей, срезов, карт и интерфейсов.</p>
+</section>
+
+<section>
+<h2>Срезы и массивы</h2>
+<dl>
+  <dt>nums := []int{1, 2, 3}</dt>
+  <dd>Срез — основная последовательность в Go</dd>
+  <dt>make([]int, 0, 10)</dt>
+  <dd>Срез нулевой длины с запасом ёмкости</dd>
+  <dt>nums = append(nums, 4)</dt>
+  <dd>Добавление; append возвращает новый срез, результат надо присвоить</dd>
+  <dt>nums[1:3]</dt>
+  <dd>Подсрез; правая граница не включается, память общая с исходным</dd>
+  <dt>len(nums), cap(nums)</dt>
+  <dd>Длина и ёмкость</dd>
+  <dt>copy(dst, src)</dt>
+  <dd>Скопировать элементы, чтобы разорвать связь по памяти</dd>
+  <dt>var arr [5]int</dt>
+  <dd>Массив фиксированной длины; длина — часть типа</dd>
+</dl>
+</section>
+
+<section>
+<h2>Карты</h2>
+<dl>
+  <dt>ages := map[string]int{"аня": 30}</dt>
+  <dd>Карта: ключ — значение</dd>
+  <dt>ages["петя"] = 25</dt>
+  <dd>Запись; чтение отсутствующего ключа даёт нулевое значение</dd>
+  <dt>v, ok := ages["вася"]</dt>
+  <dd>Проверка наличия ключа</dd>
+  <dt>delete(ages, "аня")</dt>
+  <dd>Удаление</dd>
+</dl>
+<p class="warn"><b>Осторожно:</b> запись в nil-карту вызывает панику. Создавайте её через <code>make(map[string]int)</code> или литералом.</p>
+</section>
+
+<section>
+<h2>Управление потоком</h2>
+<pre>if err := doWork(); err != nil {
+    return err
+}
+
+for i := 0; i &lt; 10; i++ { }
+for i, v := range nums { }
+for { break }            // бесконечный
+
+switch {
+case x &gt; 10:
+    ...
+default:
+    ...
+}</pre>
+<p class="note">В Go нет while: его роль играет <code>for</code> с одним условием. В <code>switch</code> ветки не проваливаются — <code>break</code> не нужен.</p>
+</section>
+
+<section>
+<h2>Функции и ошибки</h2>
+<pre>func divide(a, b float64) (float64, error) {
+    if b == 0 {
+        return 0, errors.New("деление на ноль")
+    }
+    return a / b, nil
+}
+
+res, err := divide(10, 0)
+if err != nil {
+    return fmt.Errorf("расчёт: %w", err)
+}
+defer file.Close()</pre>
+<dl>
+  <dt>%w в fmt.Errorf</dt>
+  <dd>Оборачивает ошибку с сохранением исходной</dd>
+  <dt>errors.Is(err, os.ErrNotExist)</dt>
+  <dd>Проверка конкретной ошибки в цепочке</dd>
+  <dt>errors.As(err, &amp;target)</dt>
+  <dd>Извлечь ошибку нужного типа</dd>
+  <dt>defer</dt>
+  <dd>Отложить вызов до выхода из функции; выполняется и при панике</dd>
+</dl>
+</section>
+
+<section>
+<h2>Структуры и методы</h2>
+<pre>type User struct {
+    Name  string `json:"name"`
+    Email string `json:"email,omitempty"`
+}
+
+func (u User) Greeting() string {
+    return "Привет, " + u.Name
+}
+
+func (u *User) Rename(name string) {
+    u.Name = name
+}</pre>
+<p class="note">Метод с указателем нужен, чтобы менять поля. Имя с заглавной буквы делает поле или функцию доступными из других пакетов.</p>
+</section>
+
+<section>
+<h2>Интерфейсы</h2>
+<pre>type Storer interface {
+    Get(id string) ([]byte, error)
+    Put(id string, data []byte) error
+}</pre>
+<p class="note">Тип реализует интерфейс автоматически, если у него есть нужные методы — объявлять это не требуется. Небольшие интерфейсы удобнее: часто достаточно одного метода.</p>
+<dl>
+  <dt>v, ok := x.(MyType)</dt>
+  <dd>Приведение типа с проверкой</dd>
+  <dt>switch v := x.(type) { case int: ... }</dt>
+  <dd>Ветвление по фактическому типу</dd>
+</dl>
+</section>
+
+<section>
+<h2>Горутины и каналы</h2>
+<pre>go worker(ch)                 // запуск горутины
+
+ch := make(chan int, 10)      // канал с буфером
+ch &lt;- 1                       // отправка
+v := &lt;-ch                     // приём
+close(ch)
+
+var wg sync.WaitGroup
+wg.Add(1)
+go func() {
+    defer wg.Done()
+    ...
+}()
+wg.Wait()
+
+select {
+case v := &lt;-ch:
+    ...
+case &lt;-ctx.Done():
+    return ctx.Err()
+}</pre>
+<dl>
+  <dt>sync.Mutex</dt>
+  <dd>Защита общих данных: Lock и Unlock</dd>
+  <dt>context.WithTimeout</dt>
+  <dd>Ограничение времени и отмена операции</dd>
+  <dt>go run -race ./...</dt>
+  <dd>Поиск гонок при обращении к общим данным</dd>
+</dl>
+</section>
+
+<section>
+<h2>Обобщения</h2>
+<pre>func Map[T, R any](in []T, f func(T) R) []R {
+    out := make([]R, 0, len(in))
+    for _, v := range in {
+        out = append(out, f(v))
+    }
+    return out
+}</pre>
+</section>
+
+<section>
+<h2>Инструменты</h2>
+<dl>
+  <dt>go test ./... -v</dt>
+  <dd>Запуск тестов во всех пакетах</dd>
+  <dt>go test -run TestName -cover</dt>
+  <dd>Один тест; с покрытием</dd>
+  <dt>go test -bench . -benchmem</dt>
+  <dd>Замеры производительности и выделений памяти</dd>
+  <dt>go fmt ./... / gofmt -w .</dt>
+  <dd>Единое форматирование — обязательная привычка в Go</dd>
+  <dt>go vet ./...</dt>
+  <dd>Поиск подозрительных мест, которые компилятор пропускает</dd>
+  <dt>go mod tidy</dt>
+  <dd>Добавить недостающие и убрать лишние зависимости</dd>
+  <dt>go get example.com/pkg@v1.2.3</dt>
+  <dd>Добавить или обновить зависимость</dd>
+  <dt>GOOS=linux GOARCH=amd64 go build</dt>
+  <dd>Сборка под другую платформу</dd>
+  <dt>go doc fmt.Println</dt>
+  <dd>Документация по пакету или функции в терминале</dd>
+</dl>
+</section>
+
+<section>
+<h2>Тест</h2>
+<pre>func TestDivide(t *testing.T) {
+    got, err := divide(10, 2)
+    if err != nil {
+        t.Fatalf("неожиданная ошибка: %v", err)
+    }
+    if got != 5 {
+        t.Errorf("получили %v, ожидали 5", got)
+    }
+}</pre>
+<p class="note">Файл теста называется <code>*_test.go</code> и лежит рядом с кодом. Таблица случаев плюс <code>t.Run</code> — обычный способ описать много вариантов.</p>
+</section>
+
+</div>
+
+<footer>Оригинальная шпаргалка на русском языке для репозитория 2web/cheat-sheet-pdf.</footer>
+</body>
+</html>
