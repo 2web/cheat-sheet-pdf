@@ -1,20 +1,21 @@
 
-# DevOps and IT Cheat-Sheet Collection
+# Коллекция шпаргалок по DevOps и IT
 ![stars](https://img.shields.io/github/stars/sk3pp3r/cheat-sheet-pdf?style=for-the-badge) ![watchers](https://img.shields.io/github/forks/sk3pp3r/cheat-sheet-pdf?color=orange&style=for-the-badge)
 
+**Русский** | [English](README.en.md)
 
-Welcome to the Cheat-Sheet Collection for DevOps, Engineers, IT professionals, and more! This repository contains a curated list of cheat sheets for various tools and technologies commonly used in the software development and IT industry.
+Добро пожаловать в коллекцию шпаргалок для DevOps-инженеров, разработчиков, IT-специалистов и не только! В этом репозитории собран тщательно отобранный список шпаргалок по различным инструментам и технологиям, которые широко используются в разработке ПО и в IT-индустрии.
 
 ![Cheat Sheet](~img/cheat-sheet-main.png)
 
-## :scroll: Rules
+## :scroll: Правила
 
-Before diving into the cheat sheets, please keep these essential rules in mind:
+Прежде чем переходить к шпаргалкам, помните о нескольких важных правилах:
 
-* Contributions are warmly welcomed to improve and expand the collection.
-* If you find the cheat sheets helpful, show your appreciation by giving us a :star: on GitHub.
+* Мы всегда рады вкладу, который поможет улучшить и расширить коллекцию.
+* Если шпаргалки оказались вам полезны, поставьте нам :star: на GitHub.
 
-## :pushpin: Index of Cheat-Sheets
+## :pushpin: Содержание
 
 1. [Nginx :whale:](#nginx-whale)
 2. [Docker :whale:](#docker-whale)
@@ -22,85 +23,85 @@ Before diving into the cheat sheets, please keep these essential rules in mind:
 4. [Python :snake:](#python-snake)
 5. [Go (Golang) :racehorse:](#go-golang-racehorse)
 6. [Git :octocat:](#git-octocat)
-7. [Regular Expressions (Regex) :mag:](#regular-expressions-regex-mag)
+7. [Регулярные выражения (Regex) :mag:](#регулярные-выражения-regex-mag)
 8. [PowerShell :electric_plug:](#powershell-electric_plug)
 9. [VIM :keyboard:](#vim-keyboard)
 10. [Jenkins :construction_worker:](#jenkins-construction_worker)
-11. [Continuous Integration and Continuous Delivery (CI/CD) :repeat:](#continuous-integration-and-continuous-delivery-cicd-repeat)
+11. [Непрерывная интеграция и непрерывная поставка (CI/CD) :repeat:](#непрерывная-интеграция-и-непрерывная-поставка-cicd-repeat)
 12. [Kubernetes :ship:](#kubernetes-ship)
 13. [Linux :penguin:](#linux-penguin)
 14. [Redis :floppy_disk:](#redis-floppy_disk)
 15. [Slack :speech_balloon:](#slack-speech_balloon)
 16. [Puppet 🐕](#puppet-🐕)
 17. [Google Cloud Developer :cloud:](#google-cloud-developer-cloud)
-18. [AI, Neural Networks, Machine Learning, Deep Learning & Data Science :robot:](#ai-neural-networks-machine-learning-deep-learning-data-science-robot)
+18. [ИИ, нейронные сети, машинное обучение, глубокое обучение и Data Science :robot:](#ии-нейронные-сети-машинное-обучение-глубокое-обучение-и-data-science-robot)
 19. [PostgreSQL :elephant:](#postgresql-elephant)
 20. [Ajax :arrows_counterclockwise:](#ajax-arrows_counterclockwise)
 21. [Amazon Web Services (AWS) :cloud_with_lightning_and_rain:](#amazon-web-services-aws-cloud_with_lightning_and_rain)
-22. [Infrastructure as Code (IaC) :building_construction:](#infrastructure-as-code-iac-building_construction)
-23. [System Design :gear:](#system-design-gear)
-24. [Cyber Security :lock:](#cyber-security-lock)
+22. [Инфраструктура как код (IaC) :building_construction:](#инфраструктура-как-код-iac-building_construction)
+23. [Проектирование систем :gear:](#проектирование-систем-gear)
+24. [Кибербезопасность :lock:](#кибербезопасность-lock)
 
 ---
 
 ### Nginx :whale:
-* [Nginx](pdf/nginx.pdf): Nginx is open-source software for web serving, reverse proxying, caching, load balancing, media streaming, and more.
+* [Nginx](pdf/nginx.pdf): Nginx — программное обеспечение с открытым исходным кодом для веб-сервера, обратного проксирования, кеширования, балансировки нагрузки, потоковой передачи медиа и многого другого.
 
 ### Docker :whale:
-* [Docker](pdf/docker.pdf): Docker is a tool designed to make it easier to create, deploy, and run applications using containers.
-* [Docker by JRebel](pdf/docker_by_jrebel.pdf)
-* [Docker Security](pdf/docker-security.pdf)
+* [Docker](pdf/docker.pdf): Docker — инструмент, который упрощает создание, развёртывание и запуск приложений в контейнерах.
+* [Docker от JRebel](pdf/docker_by_jrebel.pdf)
+* [Безопасность Docker](pdf/docker-security.pdf)
 
 ### Ansible :hammer_and_wrench:
-* [Ansible](pdf/ansible.pdf): Ansible is the simplest way to automate apps and IT infrastructure.
+* [Ansible](pdf/ansible.pdf): Ansible — самый простой способ автоматизировать приложения и IT-инфраструктуру.
 
 ### Python :snake:
-* [Python 3 - The Basics](pdf/cheatsheet-python-grok.pdf)
-* [Python for Beginners](pdf/python_beginners.pdf)
+* [Python 3 — основы](pdf/cheatsheet-python-grok.pdf)
+* [Python для начинающих](pdf/python_beginners.pdf)
 
 ### Go (Golang) :racehorse:
-* [Go (Golang)](pdf/go_golang.pdf): Go, also known as Golang, is a statically typed, compiled programming language designed at Google.
+* [Go (Golang)](pdf/go_golang.pdf): Go, также известный как Golang, — статически типизированный компилируемый язык программирования, разработанный в Google.
 
 ### Git :octocat:
-* [Git by Atlassian](pdf/atlassian-git-cheatsheet.pdf)
-* [Git by GitHub](pdf/git_by_github.pdf)
-* [Git by Git-Tower](pdf/git_by_git-tower.pdf)
-* [Git/GitHub - Pull Request](pdf/github.pdf)
+* [Git от Atlassian](pdf/atlassian-git-cheatsheet.pdf)
+* [Git от GitHub](pdf/git_by_github.pdf)
+* [Git от Git-Tower](pdf/git_by_git-tower.pdf)
+* [Git/GitHub — Pull Request](pdf/github.pdf)
 
-### Regular Expressions (Regex) :mag:
-* [Regex](pdf/regex.pdf): Regular expressions are special text strings for describing search patterns.
-* [Regex for Python](pdf/python-regular-expression-regex.pdf)
+### Регулярные выражения (Regex) :mag:
+* [Regex](pdf/regex.pdf): Регулярные выражения — специальные текстовые строки для описания шаблонов поиска.
+* [Regex для Python](pdf/python-regular-expression-regex.pdf)
 
 ### PowerShell :electric_plug:
-* [PowerShell](pdf/Powershell.pdf): PowerShell is a task automation and configuration management framework from Microsoft.
+* [PowerShell](pdf/Powershell.pdf): PowerShell — фреймворк Microsoft для автоматизации задач и управления конфигурацией.
 
 ### VIM :keyboard:
-* [VIM](pdf/vim-cheat-sheet.pdf): VIM, aka `Vi IMproved`, is a highly configurable text editor for efficiently creating and changing any kind of text.
+* [VIM](pdf/vim-cheat-sheet.pdf): VIM (`Vi IMproved`) — гибко настраиваемый текстовый редактор для быстрого создания и изменения любого текста.
 
 ### Jenkins :construction_worker:
-* [Jenkins](pdf/Jenkins-Cheat-Sheet-converted.pdf): Jenkins is an open-source automation server that enables developers to reliably build, test, and deploy their software.
+* [Jenkins](pdf/Jenkins-Cheat-Sheet-converted.pdf): Jenkins — сервер автоматизации с открытым исходным кодом, который позволяет надёжно собирать, тестировать и развёртывать программное обеспечение.
 
-### Continuous Integration and Continuous Delivery (CI/CD) :repeat:
-* [CI/CD Framework](pdf/cicd-framework_by_densify.pdf): CI/CD frameworks have made the practice of software development increasingly complex—and overwhelming.
+### Непрерывная интеграция и непрерывная поставка (CI/CD) :repeat:
+* [CI/CD-фреймворк](pdf/cicd-framework_by_densify.pdf): CI/CD-фреймворки сделали процесс разработки ПО заметно сложнее — и порой перегруженным.
 
 ### Kubernetes :ship:
-* [Kubernetes K8s Cheat-Sheet](pdf/Kubernetes-Cheat-Sheet.pdf)
-* [Kubectl](pdf/kubectl.pdf): Kubectl is a command-line interface for running commands against Kubernetes clusters.
+* [Шпаргалка по Kubernetes (K8s)](pdf/Kubernetes-Cheat-Sheet.pdf)
+* [Kubectl](pdf/kubectl.pdf): Kubectl — интерфейс командной строки для выполнения команд в кластерах Kubernetes.
 
 ### Linux :penguin:
-* Bash: Bash is a Unix shell and command language written by Brian Fox for the GNU Project as a free software replacement for the Bourne shell.
-  * [Linux Commands 1](pdf/linux-bash.pdf)
-  * [Linux Commands 2](pdf/linux-bash-terminal.pdf)
-  * [Linux Commands 3](pdf/linux_commands.pdf)
-  * [Linux Network Tools](pdf/linux-networking-tool): A compilation of various Linux networking tools.
-* [Network-tools](pdf/linux-networing-tools.pdf): Network-tools cheat sheet includes ping, curl, wget, ssh, and more.
-* [Cron](pdf/cron.pdf): Cron is a time-based job scheduler in Unix-like computer operating systems.
-* [Rsync](pdf/rsync.pdf): Rsync is a fast and versatile file copying tool used for local and remote file transfers.
+* Bash: Bash — Unix-оболочка и командный язык, написанный Брайаном Фоксом для проекта GNU как свободная замена оболочки Bourne.
+  * [Команды Linux 1](pdf/linux-bash.pdf)
+  * [Команды Linux 2](pdf/linux-bash-terminal.pdf)
+  * [Команды Linux 3](pdf/linux_commands.pdf)
+  * [Сетевые инструменты Linux](pdf/linux-networking-tool): Подборка различных сетевых инструментов Linux.
+* [Network-tools](pdf/linux-networing-tools.pdf): Шпаргалка по сетевым инструментам включает ping, curl, wget, ssh и другие.
+* [Cron](pdf/cron.pdf): Cron — планировщик задач по времени в Unix-подобных операционных системах.
+* [Rsync](pdf/rsync.pdf): Rsync — быстрый и универсальный инструмент копирования файлов для локальной и удалённой передачи.
 * [cURL](pdf/curl.pdf)
 * [SSH](pdf/ssh.pdf)
 * [NC (Netcat)](pdf/netcat.pdf)
-* [Nmap](pdf/nmap.pdf): Nmap is a powerful network scanning tool.
-  * [Nmap Cheat Sheet](pdf/Nmap-Cheat-Sheet.pdf) by Comparitech.
+* [Nmap](pdf/nmap.pdf): Nmap — мощный инструмент сканирования сети.
+  * [Шпаргалка по Nmap](pdf/Nmap-Cheat-Sheet.pdf) от Comparitech.
 * [OpenSSL](pdf/openssl.pdf)
 * [Ethtool](pdf/ethtool.pdf)
 * [ngrep](pdf/ngrep.pdf)
@@ -112,48 +113,48 @@ Before diving into the cheat sheets, please keep these essential rules in mind:
 * [tar](pdf/tar.pdf)
 * [ps](pdf/ps.pdf)
 * [top](pdf/top.pdf)
-* [Wireshark](pdf/wireshark.pdf): Wireshark is a free and open-source packet analyzer.
-* [Linux File Systems](pdf/LinuxFileSystems.gif): The Linux file system used to resemble an unorganized town where individuals constructed their houses wherever they pleased.
+* [Wireshark](pdf/wireshark.pdf): Wireshark — бесплатный анализатор сетевых пакетов с открытым исходным кодом.
+* [Файловые системы Linux](pdf/LinuxFileSystems.gif): Раньше файловая система Linux напоминала неупорядоченный город, где каждый строил дом там, где ему вздумается.
 
 ### Redis :floppy_disk:
-* [Redis](pdf/redis.pdf): Redis is an in-memory data structure store used as a database, cache, and message broker.
+* [Redis](pdf/redis.pdf): Redis — размещаемое в памяти хранилище структур данных, которое используется как база данных, кеш и брокер сообщений.
 
 ### Slack :speech_balloon:
-* [Slack](pdf/slack.pdf): Slack is a messaging tool for fast and easy communication within teams, organized by channels.
+* [Slack](pdf/slack.pdf): Slack — мессенджер для быстрого и удобного общения внутри команд, организованного по каналам.
 
 ### Puppet 🐕
-* [Puppet](pdf/puppet.pdf): Puppet lets you automate the enforcement, security, and delivery of your hybrid or cloud-native infrastructure.
+* [Puppet](pdf/puppet.pdf): Puppet позволяет автоматизировать соблюдение политик, безопасность и доставку вашей гибридной или облачной инфраструктуры.
 
 ### Google Cloud Developer :cloud:
-* [Google Cloud Developer](pdf/GoogleCloudDeveloper.pdf): This cheat sheet covers building scalable and highly available applications using Google-recommended practices and tools that leverage fully managed services.
+* [Google Cloud Developer](pdf/GoogleCloudDeveloper.pdf): Эта шпаргалка охватывает создание масштабируемых и высокодоступных приложений с использованием рекомендованных Google практик и инструментов на базе полностью управляемых сервисов.
 
-### AI, Neural Networks, Machine Learning, Deep Learning & Data Science :robot:
-* [AI & ML Cheat-Sheet](pdf/AI_ML.pdf): This section explores intelligence demonstrated by machines.
+### ИИ, нейронные сети, машинное обучение, глубокое обучение и Data Science :robot:
+* [Шпаргалка по ИИ и ML](pdf/AI_ML.pdf): Этот раздел посвящён интеллекту, который демонстрируют машины.
 
 ### PostgreSQL :elephant:
-* [PostgreSQL](pdf/PostgreSQL-Cheat-Sheet.pdf): PostgreSQL is a free and open-source relational database management system (RDBMS) emphasizing extensibility and SQL compliance.
+* [PostgreSQL](pdf/PostgreSQL-Cheat-Sheet.pdf): PostgreSQL — бесплатная реляционная СУБД с открытым исходным кодом, в которой особое внимание уделяется расширяемости и соответствию стандарту SQL.
 
 ### Ajax :arrows_counterclockwise:
-* [Ajax](pdf/ajax.pdf): AJAX = Asynchronous JavaScript And XML.
+* [Ajax](pdf/ajax.pdf): AJAX = Asynchronous JavaScript And XML (асинхронный JavaScript и XML).
 
 ### Amazon Web Services (AWS) :cloud_with_lightning_and_rain:
-* [AWS: The Basics](pdf/AWS-Basic-Cheat-Sheet.pdf)
-* [AWS Services](pdf/aws-services.pdf)
-* [AWS Cost Information](pdf/aws-cost.pdf)
+* [AWS: основы](pdf/AWS-Basic-Cheat-Sheet.pdf)
+* [Сервисы AWS](pdf/aws-services.pdf)
+* [Информация о стоимости AWS](pdf/aws-cost.pdf)
 
-### Infrastructure as Code (IaC) :building_construction:
-* [Terraform](pdf/terraform-cheatsheet1-.pdf): Terraform is an open-source infrastructure-as-code software tool for managing cloud services.
+### Инфраструктура как код (IaC) :building_construction:
+* [Terraform](pdf/terraform-cheatsheet1-.pdf): Terraform — инструмент с открытым исходным кодом для управления облачными сервисами по принципу «инфраструктура как код».
 
-### System Design :gear:
-* [System Design Blueprint](pdf/System_Design_Blueprint.pdf): System Design is defined as a process of creating an architecture for different components, interfaces, and modules of the system and providing corresponding data helpful in implementing such elements in systems.
+### Проектирование систем :gear:
+* [System Design Blueprint](pdf/System_Design_Blueprint.pdf): Проектирование систем — это процесс создания архитектуры для различных компонентов, интерфейсов и модулей системы, а также подготовки данных, которые помогают реализовать эти элементы.
 
-### Cyber Security :lock:
-* [Cyber Security 101](pdf/cybersecurity-101.gif): Fundamentals of Cybersecurity Topics.
-* [What is DevSecOps?](pdf/devsecops.gif): DevSecOps emerged as a natural evolution of DevOps practices with a focus on integrating security into the software development and deployment process.
+### Кибербезопасность :lock:
+* [Основы кибербезопасности](pdf/cybersecurity-101.gif): Базовые темы кибербезопасности.
+* [Что такое DevSecOps?](pdf/devsecops.gif): DevSecOps стал естественным развитием практик DevOps с акцентом на встраивание безопасности в процесс разработки и развёртывания ПО.
 
 
 ---
 
-If you find this collection helpful, consider supporting the project by [buying us a coffee](https://www.buymeacoffee.com/haim_cohen).
+Если эта коллекция оказалась вам полезной, поддержите проект — [купите нам кофе](https://www.buymeacoffee.com/haim_cohen).
 
-Thank you for using our cheat sheet collection! Happy coding! :rocket:
+Спасибо, что пользуетесь нашей коллекцией шпаргалок! Удачного кода! :rocket:
