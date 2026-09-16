@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Шпаргалка по Terraform</title>
+<link rel="stylesheet" href="cheatsheet.css">
+</head>
+<body>
+<h1>Шпаргалка по Terraform</h1>
+<p class="lead">Инфраструктура как код: команды, язык описания, переменные и выходные значения, состояние и его хранение, модули, зависимости и приёмы безопасной работы с рабочими средами.</p>
+
+<div class="cols">
+
+<section>
+<h2>Основные понятия</h2>
+<ul class="gloss">
+  <li><b>Провайдер</b> — плагин для работы с платформой (AWS, Google Cloud, Kubernetes).</li>
+  <li><b>Ресурс</b> — управляемый объект инфраструктуры.</li>
+  <li><b>Источник данных</b> (<code>data</code>) — чтение того, что создано вне этой конфигурации.</li>
+  <li><b>Состояние</b> — файл соответствия между описанием и реальными объектами.</li>
+  <li><b>План</b> — предполагаемые изменения до их применения.</li>
+  <li><b>Модуль</b> — набор ресурсов, оформленный для повторного использования.</li>
+</ul>
+</section>
+
+<section>
+<h2>Команды</h2>
+<dl>
+  <dt>terraform init</dt>
+  <dd>Скачать провайдеры и модули, настроить хранилище состояния</dd>
+  <dt>terraform fmt -recursive / terraform validate</dt>
+  <dd>Форматирование и проверка синтаксиса</dd>
+  <dt>terraform plan -out=tfplan</dt>
+  <dd>Показать изменения и сохранить план</dd>
+  <dt>terraform apply tfplan</dt>
+  <dd>Применить именно то, что показал план</dd>
+  <dt>terraform apply -target=aws_instance.web</dt>
+  <dd>Только один ресурс — крайняя мера при разборе проблем</dd>
+  <dt>terraform destroy</dt>
+  <dd>Удалить всё описанное конфигурацией</dd>
+  <dt>terraform output / output -json</dt>
+  <dd>Выходные значения, в том числе для других инструментов</dd>
+  <dt>terraform show / state list</dt>
+  <dd>Текущее состояние; перечень ресурсов в нём</dd>
+  <dt>terraform import адрес id</dt>
+  <dd>Взять под управление существующий объект</dd>
+  <dt>terraform state mv / rm</dt>
+  <dd>Переименовать ресурс в состоянии; забыть о нём, не удаляя в облаке</dd>
+</dl>
+</section>
+
+<section>
+<h2>Конфигурация</h2>
+<pre>terraform {
+  required_version = "&gt;= 1.6"
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~&gt; 5.0"
+    }
+  }
+  backend "s3" {
+    bucket = "tf-state"
+    key    = "prod/app.tfstate"
+    region = "eu-central-1"
+  }
+}
+
+provider "aws" {
+  region = var.region
+}
+
+resource "aws_s3_bucket" "assets" {
+  bucket = "${var.project}-assets"
+  tags   = local.common_tags
+}</pre>
+</section>
+
+<section>
+<h2>Переменные и значения</h2>
+<pre>variable "region" {
+  type    = string
+  default = "eu-central-1"
+}
+
+variable "instance_count" {
+  type = number
+  validation {
+    condition     = var.instance_count &gt; 0
+    error_message = "Должно быть больше нуля."
+  }
+}
+
+locals {
+  common_tags = {
+    project = var.project
+    managed = "terraform"
+  }
+}
+
+output "bucket_name" {
+  value = aws_s3_bucket.assets.bucket
+}</pre>
+<dl>
+  <dt>terraform.tfvars / -var-file=prod.tfvars</dt>
+  <dd>Значения переменных для среды</dd>
+  <dt>TF_VAR_region=eu-west-1</dt>
+  <dd>Переменная через окружение — удобно в CI</dd>
+  <dt>sensitive = true</dt>
+  <dd>Не выводить значение в журнал</dd>
+</dl>
+</section>
+
+<section>
+<h2>Выражения</h2>
+<dl>
+  <dt>count = 3 / count.index</dt>
+  <dd>Несколько одинаковых ресурсов</dd>
+  <dt>for_each = toset(["a", "b"])</dt>
+  <dd>По набору или карте; <code>each.key</code>, <code>each.value</code>. Устойчивее <code>count</code> при изменениях списка</dd>
+  <dt>dynamic "ingress" { for_each = ... }</dt>
+  <dd>Повторяющиеся вложенные блоки</dd>
+  <dt>condition ? a : b</dt>
+  <dd>Условный выбор значения</dd>
+  <dt>depends_on = [aws_iam_role.app]</dt>
+  <dd>Явная зависимость, когда неявной недостаточно</dd>
+  <dt>lifecycle { prevent_destroy = true }</dt>
+  <dd>Защита от удаления; есть также <code>create_before_destroy</code> и <code>ignore_changes</code></dd>
+  <dt>templatefile("init.sh.tftpl", { port = var.port })</dt>
+  <dd>Шаблон с подстановкой значений</dd>
+</dl>
+</section>
+
+<section>
+<h2>Модули</h2>
+<pre>module "network" {
+  source = "./modules/network"
+
+  cidr    = "10.0.0.0/16"
+  project = var.project
+}
+
+module "db" {
+  source  = "terraform-aws-modules/rds/aws"
+  version = "~&gt; 6.0"
+
+  identifier = "app-db"
+  subnet_ids = module.network.private_subnets
+}</pre>
+<p class="note">Раскладка модуля: <code>main.tf</code>, <code>variables.tf</code>, <code>outputs.tf</code>, <code>README.md</code>. Версию внешнего модуля фиксируйте — иначе сборка перестанет быть воспроизводимой.</p>
+</section>
+
+<section>
+<h2>Состояние</h2>
+<ul class="gloss">
+  <li>Храните состояние удалённо (S3 с блокировкой, GCS, Terraform Cloud) — локальный файл не подходит для команды.</li>
+  <li>Блокировка не даёт двум людям применять изменения одновременно.</li>
+  <li>Состояние содержит значения ресурсов, в том числе чувствительные: доступ к нему ограничивайте, включайте шифрование.</li>
+  <li>Отдельное состояние на среду (dev, stage, prod) — либо рабочие пространства, либо разные ключи хранения.</li>
+  <li>Правьте состояние только командами <code>terraform state</code>, не текстовым редактором.</li>
+</ul>
+<dl>
+  <dt>terraform workspace new prod / select prod</dt>
+  <dd>Рабочие пространства: одна конфигурация, разные состояния</dd>
+  <dt>terraform force-unlock ID</dt>
+  <dd>Снять зависшую блокировку — только когда точно известно, что процесс мёртв</dd>
+</dl>
+</section>
+
+<section>
+<h2>Отладка</h2>
+<dl>
+  <dt>terraform plan -refresh=false</dt>
+  <dd>Быстрый план без опроса облака</dd>
+  <dt>terraform console</dt>
+  <dd>Проверить выражение и посмотреть значения интерактивно</dd>
+  <dt>TF_LOG=DEBUG terraform apply</dt>
+  <dd>Подробный журнал (уровни TRACE, DEBUG, INFO)</dd>
+  <dt>terraform graph | dot -Tsvg &gt; graph.svg</dt>
+  <dd>Схема зависимостей ресурсов</dd>
+  <dt>terraform providers lock</dt>
+  <dd>Зафиксировать контрольные суммы провайдеров для всех платформ</dd>
+</dl>
+</section>
+
+<section>
+<h2>Работа в команде</h2>
+<ul class="gloss">
+  <li>План — обязательная часть код-ревью: смотрят не только на код, но и на то, что он изменит.</li>
+  <li>В конвейере CI: <code>fmt</code> и <code>validate</code> на каждый запрос, <code>plan</code> с публикацией результата, <code>apply</code> — по подтверждению.</li>
+  <li>Никаких изменений руками в консоли облака: расхождение всплывёт в ближайшем плане как неожиданное удаление.</li>
+  <li>Секреты — во внешнем хранилище, а не в <code>tfvars</code> в репозитории.</li>
+  <li>Версии Terraform и провайдеров фиксируйте: обновление версии — отдельное изменение.</li>
+  <li>Проверки безопасности конфигурации (tfsec, Checkov) полезны на этапе запроса на слияние.</li>
+</ul>
+</section>
+
+<section>
+<h2>Опасные места</h2>
+<ul class="gloss">
+  <li>План показывает <code>-/+ replace</code> — ресурс будет пересоздан; для базы данных это потеря данных.</li>
+  <li>Смена <code>name</code> или другого неизменяемого поля почти всегда означает пересоздание.</li>
+  <li>Переход с <code>count</code> на <code>for_each</code> меняет адреса ресурсов: помогает <code>terraform state mv</code> или блок <code>moved</code>.</li>
+  <li><code>terraform destroy</code> в рабочей среде — самая дорогая опечатка; защищайте ресурсы <code>prevent_destroy</code>.</li>
+  <li>Удаление ресурса из кода означает его удаление в облаке при следующем применении.</li>
+</ul>
+</section>
+
+</div>
+
+<footer>Оригинальная шпаргалка на русском языке для репозитория 2web/cheat-sheet-pdf.</footer>
+</body>
+</html>
