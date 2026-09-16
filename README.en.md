@@ -1,5 +1,5 @@
 # DevOps and IT Cheat-Sheet Collection
-![stars](https://img.shields.io/github/stars/sk3pp3r/cheat-sheet-pdf?style=for-the-badge) ![watchers](https://img.shields.io/github/forks/sk3pp3r/cheat-sheet-pdf?color=orange&style=for-the-badge)
+![stars](https://img.shields.io/github/stars/2web/cheat-sheet-pdf?style=for-the-badge) ![watchers](https://img.shields.io/github/watchers/2web/cheat-sheet-pdf?color=orange&style=for-the-badge)
 
 
 [Русский](README.md) | **English**
