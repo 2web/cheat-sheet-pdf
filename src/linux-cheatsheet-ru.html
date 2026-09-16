@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Шпаргалка по Linux</title>
+<link rel="stylesheet" href="cheatsheet.css">
+</head>
+<body>
+<h1>Шпаргалка по Linux</h1>
+<p class="lead">Файлы и каталоги, права, поиск, текстовые утилиты, процессы и службы, диск и память, сеть, архивы и передача файлов, расписание задач, диагностика.</p>
+
+<div class="cols">
+
+<section>
+<h2>Файлы и каталоги</h2>
+<dl>
+  <dt>ls -lah</dt>
+  <dd>Подробный список с размерами и скрытыми файлами</dd>
+  <dt>cd - / cd ~</dt>
+  <dd>В предыдущий каталог / в домашний</dd>
+  <dt>cp -r откуда куда / mv что куда</dt>
+  <dd>Копирование каталога; перемещение и переименование</dd>
+  <dt>rm -rf каталог</dt>
+  <dd>Удаление без подтверждения — проверьте путь дважды</dd>
+  <dt>mkdir -p a/b/c</dt>
+  <dd>Создать цепочку каталогов</dd>
+  <dt>ln -s цель ссылка</dt>
+  <dd>Символьная ссылка</dd>
+  <dt>du -sh * | sort -h</dt>
+  <dd>Размер содержимого по возрастанию</dd>
+  <dt>stat файл / file файл</dt>
+  <dd>Метаданные; тип содержимого</dd>
+</dl>
+</section>
+
+<section>
+<h2>Права доступа</h2>
+<dl>
+  <dt>chmod 644 файл / chmod 755 скрипт</dt>
+  <dd>Чтение и запись владельцу, чтение остальным; плюс запуск</dd>
+  <dt>chmod +x script.sh</dt>
+  <dd>Сделать файл исполняемым</dd>
+  <dt>chown user:group файл</dt>
+  <dd>Сменить владельца и группу (<code>-R</code> — рекурсивно)</dd>
+  <dt>umask</dt>
+  <dd>Маска прав для новых файлов</dd>
+  <dt>sudo -u postgres команда</dt>
+  <dd>Выполнить от имени другого пользователя</dd>
+  <dt>id / groups</dt>
+  <dd>Свои идентификаторы и группы</dd>
+</dl>
+<p class="note">Цифры прав: 4 — чтение, 2 — запись, 1 — выполнение; складываются для владельца, группы и остальных.</p>
+</section>
+
+<section>
+<h2>Поиск</h2>
+<dl>
+  <dt>find /var/log -name "*.log" -mtime -3</dt>
+  <dd>Файлы по маске, изменённые за последние трое суток</dd>
+  <dt>find . -size +100M -type f</dt>
+  <dd>Крупные файлы</dd>
+  <dt>find . -name "*.tmp" -delete</dt>
+  <dd>Найти и удалить</dd>
+  <dt>find . -name "*.log" -exec gzip {} \;</dt>
+  <dd>Выполнить команду для каждого найденного файла</dd>
+  <dt>grep -rn "текст" /etc</dt>
+  <dd>Рекурсивный поиск с номерами строк</dd>
+  <dt>grep -i -v -c "шаблон" файл</dt>
+  <dd>Без учёта регистра / кроме совпадений / посчитать</dd>
+  <dt>which команда / type -a команда</dt>
+  <dd>Где лежит исполняемый файл</dd>
+  <dt>locate имя</dt>
+  <dd>Быстрый поиск по индексу (обновляется <code>updatedb</code>)</dd>
+</dl>
+</section>
+
+<section>
+<h2>Просмотр и правка текста</h2>
+<dl>
+  <dt>cat / less / head -20 / tail -50</dt>
+  <dd>Вывести целиком, листать, начало, конец</dd>
+  <dt>tail -f app.log</dt>
+  <dd>Следить за файлом в реальном времени (<code>-F</code> переживает ротацию)</dd>
+  <dt>wc -l файл</dt>
+  <dd>Число строк</dd>
+  <dt>sort -u / sort -k2 -n</dt>
+  <dd>Сортировка с удалением повторов; по второму полю как по числам</dd>
+  <dt>uniq -c</dt>
+  <dd>Посчитать одинаковые соседние строки (перед этим sort)</dd>
+  <dt>cut -d: -f1 /etc/passwd</dt>
+  <dd>Взять поле по разделителю</dd>
+  <dt>awk '{print $1, $NF}'</dt>
+  <dd>Первое и последнее поле строки; <code>awk '$3 &gt; 100'</code> — фильтр</dd>
+  <dt>sed -i 's/старое/новое/g' файл</dt>
+  <dd>Замена прямо в файле</dd>
+  <dt>tr -d '\r' &lt; in &gt; out</dt>
+  <dd>Убрать символы, например возврат каретки</dd>
+</dl>
+</section>
+
+<section>
+<h2>Конвейеры и перенаправления</h2>
+<dl>
+  <dt>команда &gt; файл / &gt;&gt; файл</dt>
+  <dd>Записать вывод, перезаписав / дописав</dd>
+  <dt>команда 2&gt; errors.log</dt>
+  <dd>Отдельно поток ошибок; <code>2&gt;&amp;1</code> объединяет с обычным выводом</dd>
+  <dt>команда &amp;&gt; /dev/null</dt>
+  <dd>Полностью погасить вывод</dd>
+  <dt>a | b | c</dt>
+  <dd>Передать вывод следующей команде</dd>
+  <dt>команда | tee файл</dt>
+  <dd>Показать на экране и сохранить</dd>
+  <dt>xargs -n1 -P4 команда</dt>
+  <dd>Выполнить команду для каждого аргумента, в четыре потока</dd>
+  <dt>$(команда)</dt>
+  <dd>Подставить результат выполнения</dd>
+</dl>
+</section>
+
+<section>
+<h2>Процессы</h2>
+<dl>
+  <dt>ps aux | grep nginx</dt>
+  <dd>Найти процесс</dd>
+  <dt>top / htop</dt>
+  <dd>Нагрузка в реальном времени</dd>
+  <dt>kill -TERM PID / kill -9 PID</dt>
+  <dd>Мягкое завершение; принудительное, если не помогло</dd>
+  <dt>pkill -f "python app.py"</dt>
+  <dd>Завершить по строке запуска</dd>
+  <dt>nohup команда &amp;</dt>
+  <dd>Запустить в фоне, не завершая при выходе из сеанса</dd>
+  <dt>jobs / fg / bg</dt>
+  <dd>Управление фоновыми задачами оболочки</dd>
+  <dt>lsof -p PID / lsof файл</dt>
+  <dd>Какие файлы открыл процесс; кто держит файл</dd>
+  <dt>strace -p PID</dt>
+  <dd>Системные вызовы процесса — когда непонятно, где он застрял</dd>
+</dl>
+</section>
+
+<section>
+<h2>Службы systemd</h2>
+<dl>
+  <dt>systemctl status nginx</dt>
+  <dd>Состояние, последние строки журнала</dd>
+  <dt>systemctl start / stop / restart / reload</dt>
+  <dd>Управление службой</dd>
+  <dt>systemctl enable --now имя</dt>
+  <dd>Включить автозапуск и запустить сразу</dd>
+  <dt>systemctl list-units --failed</dt>
+  <dd>Что не запустилось</dd>
+  <dt>journalctl -u nginx -f</dt>
+  <dd>Журнал службы в реальном времени</dd>
+  <dt>journalctl --since "1 hour ago" -p err</dt>
+  <dd>Ошибки за последний час</dd>
+  <dt>systemctl daemon-reload</dt>
+  <dd>Перечитать изменённые unit-файлы</dd>
+</dl>
+</section>
+
+<section>
+<h2>Диск и память</h2>
+<dl>
+  <dt>df -h</dt>
+  <dd>Свободное место по точкам монтирования</dd>
+  <dt>df -i</dt>
+  <dd>Иноды: место есть, а файлы не создаются — обычно дело в них</dd>
+  <dt>du -xh --max-depth=1 / | sort -h</dt>
+  <dd>Кто занял место, по каталогам верхнего уровня</dd>
+  <dt>free -h</dt>
+  <dd>Память; строка available важнее, чем free</dd>
+  <dt>lsblk / mount | column -t</dt>
+  <dd>Диски и разделы; смонтированные файловые системы</dd>
+  <dt>uptime / vmstat 1 / iostat -x 1</dt>
+  <dd>Средняя нагрузка; общая картина; нагрузка на диски</dd>
+</dl>
+</section>
+
+<section>
+<h2>Сеть</h2>
+<dl>
+  <dt>ip a / ip r</dt>
+  <dd>Адреса интерфейсов и таблица маршрутов</dd>
+  <dt>ss -ltnp</dt>
+  <dd>Какие порты слушают и какие процессы их держат</dd>
+  <dt>ping -c 4 / traceroute host</dt>
+  <dd>Доступность узла; путь до него</dd>
+  <dt>dig +short example.com / host example.com</dt>
+  <dd>Запросы к DNS</dd>
+  <dt>curl -I / curl -sS -o out -w "%{http_code}"</dt>
+  <dd>Только заголовки; тихая загрузка с выводом кода ответа</dd>
+  <dt>wget -c url</dt>
+  <dd>Скачать с продолжением при обрыве</dd>
+  <dt>nc -zv host 5432</dt>
+  <dd>Проверить, открыт ли порт</dd>
+  <dt>tcpdump -i any port 80 -nn</dt>
+  <dd>Перехват пакетов для разбора</dd>
+</dl>
+</section>
+
+<section>
+<h2>SSH и передача файлов</h2>
+<dl>
+  <dt>ssh user@host -p 2222</dt>
+  <dd>Подключение на нестандартном порту</dd>
+  <dt>ssh-keygen -t ed25519 / ssh-copy-id user@host</dt>
+  <dd>Создать ключ и положить его на сервер</dd>
+  <dt>~/.ssh/config</dt>
+  <dd>Сокращения для узлов: Host, User, Port, IdentityFile</dd>
+  <dt>ssh -L 5432:localhost:5432 user@host</dt>
+  <dd>Проброс удалённого порта на локальную машину</dd>
+  <dt>scp файл user@host:/путь</dt>
+  <dd>Копирование по SSH</dd>
+  <dt>rsync -avz --delete src/ user@host:/dst/</dt>
+  <dd>Синхронизация каталогов со сжатием; удаляет лишнее в приёмнике</dd>
+  <dt>rsync -avz --dry-run ...</dt>
+  <dd>Показать, что будет сделано, ничего не меняя</dd>
+</dl>
+<p class="warn"><b>Осторожно:</b> косая черта в конце источника у rsync значит «содержимое каталога». Без неё копируется сам каталог — частая причина неожиданной вложенности.</p>
+</section>
+
+<section>
+<h2>Архивы и пакеты</h2>
+<dl>
+  <dt>tar -czf arc.tar.gz каталог</dt>
+  <dd>Создать сжатый архив</dd>
+  <dt>tar -xzf arc.tar.gz -C /куда</dt>
+  <dd>Распаковать в указанный каталог</dd>
+  <dt>tar -tzf arc.tar.gz</dt>
+  <dd>Посмотреть содержимое, не распаковывая</dd>
+  <dt>zip -r arc.zip каталог / unzip arc.zip</dt>
+  <dd>Работа с zip</dd>
+  <dt>apt update &amp;&amp; apt install пакет</dt>
+  <dd>Debian и Ubuntu</dd>
+  <dt>dnf install пакет / yum install пакет</dt>
+  <dd>Fedora, RHEL и родственные</dd>
+</dl>
+</section>
+
+<section>
+<h2>Расписание задач</h2>
+<dl>
+  <dt>crontab -e / crontab -l</dt>
+  <dd>Редактировать и посмотреть задания пользователя</dd>
+  <dt>*/15 * * * * /путь/script.sh</dt>
+  <dd>Каждые 15 минут. Поля: минуты, часы, день месяца, месяц, день недели</dd>
+  <dt>0 3 * * 1 команда</dt>
+  <dd>По понедельникам в 03:00</dd>
+  <dt>@reboot команда</dt>
+  <dd>При загрузке системы</dd>
+  <dt>systemd timer</dt>
+  <dd>Современная замена cron: <code>systemctl list-timers</code></dd>
+</dl>
+<p class="note">В cron скудное окружение: указывайте полные пути и перенаправляйте вывод в файл, иначе ошибки останутся незамеченными.</p>
+</section>
+
+<section>
+<h2>Когда что-то сломалось</h2>
+<ul class="gloss">
+  <li>Место кончилось — <code>df -h</code>, затем <code>du -xh --max-depth=1</code> по подозрительным каталогам; не забудьте <code>df -i</code>.</li>
+  <li>Служба не поднимается — <code>systemctl status</code> и <code>journalctl -u имя -n 100</code>.</li>
+  <li>Порт занят — <code>ss -ltnp</code> покажет процесс.</li>
+  <li>Файл удалён, но место не освободилось — процесс держит дескриптор: <code>lsof | grep deleted</code>.</li>
+  <li>Высокая нагрузка — <code>top</code>, затем <code>iostat</code> и <code>vmstat</code>: упор может быть в диск, а не в процессор.</li>
+  <li>Права — <code>ls -l</code> и <code>namei -l /полный/путь</code> покажут, на каком уровне отказ.</li>
+</ul>
+</section>
+
+</div>
+
+<footer>Оригинальная шпаргалка на русском языке для репозитория 2web/cheat-sheet-pdf.</footer>
+</body>
+</html>
