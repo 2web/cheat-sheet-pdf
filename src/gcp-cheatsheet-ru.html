@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Шпаргалка по Google Cloud</title>
+<link rel="stylesheet" href="cheatsheet.css">
+</head>
+<body>
+<h1>Шпаргалка по Google Cloud</h1>
+<p class="lead">Устройство проектов и доступов, команды gcloud, вычисления и контейнеры, хранилища и базы данных, сеть, наблюдение и расходы. Ориентирована на разработчика, который выкладывает и сопровождает приложение.</p>
+
+<div class="cols">
+
+<section>
+<h2>Как устроена платформа</h2>
+<ul class="gloss">
+  <li><b>Организация → папка → проект</b> — иерархия; ресурсы и счета привязаны к проекту.</li>
+  <li><b>Регион и зона</b> — где физически работает ресурс; зона входит в регион.</li>
+  <li><b>IAM</b> — кому что разрешено: участник получает роль на ресурс.</li>
+  <li><b>Служебный аккаунт</b> — учётная запись для программ, а не для человека.</li>
+  <li><b>API включаются отдельно</b> в каждом проекте — частая причина ошибки «API not enabled».</li>
+</ul>
+</section>
+
+<section>
+<h2>Начало работы с gcloud</h2>
+<dl>
+  <dt>gcloud init</dt>
+  <dd>Вход и выбор проекта по шагам</dd>
+  <dt>gcloud auth login / gcloud auth application-default login</dt>
+  <dd>Вход для команд; учётные данные для локальных приложений и библиотек</dd>
+  <dt>gcloud config set project my-project</dt>
+  <dd>Проект по умолчанию (есть и <code>compute/region</code>, <code>compute/zone</code>)</dd>
+  <dt>gcloud config list / gcloud projects list</dt>
+  <dd>Текущие настройки; доступные проекты</dd>
+  <dt>gcloud services enable run.googleapis.com</dt>
+  <dd>Включить нужный API в проекте</dd>
+  <dt>gcloud components update</dt>
+  <dd>Обновить SDK</dd>
+  <dt>--format=json / --filter="status=RUNNING"</dt>
+  <dd>Машинный вывод и фильтрация — работают почти во всех командах</dd>
+</dl>
+</section>
+
+<section>
+<h2>Доступы</h2>
+<dl>
+  <dt>gcloud projects add-iam-policy-binding PROJ --member=user:a@b.com --role=roles/viewer</dt>
+  <dd>Выдать роль пользователю</dd>
+  <dt>gcloud iam service-accounts create app-sa</dt>
+  <dd>Создать служебный аккаунт</dd>
+  <dt>gcloud iam service-accounts keys create key.json --iam-account=...</dt>
+  <dd>Ключ файлом — применяйте только там, где нельзя иначе</dd>
+  <dt>gcloud projects get-iam-policy PROJ</dt>
+  <dd>Кто какие роли имеет в проекте</dd>
+</dl>
+<p class="warn"><b>Осторожно:</b> роли уровня <code>owner</code> и <code>editor</code> дают слишком много. Берите узкие роли и Workload Identity вместо файлов с ключами.</p>
+</section>
+
+<section>
+<h2>Вычисления</h2>
+<dl>
+  <dt>gcloud compute instances create vm1 --machine-type=e2-medium --zone=europe-west1-b</dt>
+  <dd>Создать виртуальную машину</dd>
+  <dt>gcloud compute instances list</dt>
+  <dd>Список машин со статусами</dd>
+  <dt>gcloud compute ssh vm1 --zone=europe-west1-b</dt>
+  <dd>Подключиться по SSH с автоматической настройкой ключей</dd>
+  <dt>gcloud compute instances stop / start / delete vm1</dt>
+  <dd>Остановка снимает плату за процессор, но не за диск</dd>
+  <dt>gcloud compute instance-groups managed create ...</dt>
+  <dd>Группа с автоматическим масштабированием и восстановлением</dd>
+</dl>
+</section>
+
+<section>
+<h2>Контейнеры и бессерверные службы</h2>
+<dl>
+  <dt>gcloud run deploy api --source . --region=europe-west1</dt>
+  <dd>Cloud Run: собрать из исходников и выложить контейнер</dd>
+  <dt>gcloud run services list / logs read</dt>
+  <dd>Список служб и их журналы</dd>
+  <dt>gcloud container clusters create-auto my-gke --region=europe-west1</dt>
+  <dd>Кластер GKE в автоматическом режиме</dd>
+  <dt>gcloud container clusters get-credentials my-gke --region=europe-west1</dt>
+  <dd>Настроить kubectl на этот кластер</dd>
+  <dt>gcloud builds submit --tag=europe-docker.pkg.dev/PROJ/repo/api:1.0</dt>
+  <dd>Сборка образа в облаке</dd>
+  <dt>gcloud functions deploy hello --runtime=python312 --trigger-http</dt>
+  <dd>Функция с запуском по HTTP</dd>
+</dl>
+</section>
+
+<section>
+<h2>Хранилища и базы</h2>
+<dl>
+  <dt>gcloud storage buckets create gs://my-bucket --location=EU</dt>
+  <dd>Создать корзину Cloud Storage</dd>
+  <dt>gcloud storage cp file.txt gs://my-bucket/</dt>
+  <dd>Загрузить файл (<code>rsync</code> — синхронизация каталогов)</dd>
+  <dt>gcloud storage ls -l gs://my-bucket/**</dt>
+  <dd>Список объектов с размерами</dd>
+  <dt>gcloud sql instances create pg --database-version=POSTGRES_16 --tier=db-g1-small</dt>
+  <dd>Управляемый PostgreSQL в Cloud SQL</dd>
+  <dt>gcloud sql connect pg --user=postgres</dt>
+  <dd>Подключиться к базе</dd>
+  <dt>bq query --use_legacy_sql=false 'SELECT ...'</dt>
+  <dd>Запрос в BigQuery из терминала</dd>
+</dl>
+</section>
+
+<section>
+<h2>Сеть</h2>
+<dl>
+  <dt>gcloud compute networks create vpc1 --subnet-mode=custom</dt>
+  <dd>Своя виртуальная сеть</dd>
+  <dt>gcloud compute firewall-rules create allow-http --allow=tcp:80</dt>
+  <dd>Правило межсетевого экрана</dd>
+  <dt>gcloud compute addresses create ip1 --region=...</dt>
+  <dd>Статический внешний адрес</dd>
+  <dt>gcloud compute forwarding-rules list</dt>
+  <dd>Балансировщики и их точки входа</dd>
+  <dt>gcloud dns managed-zones create ...</dt>
+  <dd>Зона DNS</dd>
+</dl>
+</section>
+
+<section>
+<h2>Журналы и наблюдение</h2>
+<dl>
+  <dt>gcloud logging read "severity&gt;=ERROR" --limit=50 --freshness=1h</dt>
+  <dd>Ошибки за последний час</dd>
+  <dt>gcloud logging read 'resource.type="cloud_run_revision"'</dt>
+  <dd>Журналы конкретного типа ресурса</dd>
+  <dt>gcloud beta run services logs tail api</dt>
+  <dd>Поток журналов службы</dd>
+  <dt>Cloud Monitoring</dt>
+  <dd>Метрики, панели и оповещения; для приложений — свои метрики через OpenTelemetry</dd>
+  <dt>Error Reporting</dt>
+  <dd>Группировка одинаковых исключений из журналов</dd>
+</dl>
+</section>
+
+<section>
+<h2>Секреты и настройки</h2>
+<dl>
+  <dt>gcloud secrets create db-pass --replication-policy=automatic</dt>
+  <dd>Создать секрет</dd>
+  <dt>echo -n "пароль" | gcloud secrets versions add db-pass --data-file=-</dt>
+  <dd>Добавить версию значения</dd>
+  <dt>gcloud secrets versions access latest --secret=db-pass</dt>
+  <dd>Прочитать текущее значение</dd>
+  <dt>--set-secrets=DB_PASS=db-pass:latest</dt>
+  <dd>Подключить секрет к службе Cloud Run переменной окружения</dd>
+</dl>
+</section>
+
+<section>
+<h2>Расходы</h2>
+<ul class="gloss">
+  <li>Бюджеты и оповещения включайте сразу — это защита от неприятных сюрпризов.</li>
+  <li>Метки (<code>--labels=env=prod,team=api</code>) позволяют разделить счёт по командам и средам.</li>
+  <li>Платят не только работающие машины: диски, снимки, внешние адреса и исходящий трафик тоже стоят денег.</li>
+  <li>Долговременные нагрузки дешевле с обязательствами по использованию; пакетные задачи — на вытесняемых машинах.</li>
+  <li>Хранилище: правила жизненного цикла переводят старые объекты в холодные классы автоматически.</li>
+</ul>
+</section>
+
+<section>
+<h2>Частые ошибки</h2>
+<ul class="gloss">
+  <li><b>API not enabled</b> — включите нужную службу в этом проекте.</li>
+  <li><b>PERMISSION_DENIED</b> — не хватает роли у пользователя или служебного аккаунта, под которым работает служба.</li>
+  <li>Команда выполнилась «не там» — проверьте активный проект, регион и зону в <code>gcloud config list</code>.</li>
+  <li>Квоты: часть ограничений региональные; их увеличивают отдельным запросом.</li>
+  <li>Имя корзины Cloud Storage уникально глобально — занятое имя встречается часто.</li>
+</ul>
+</section>
+
+</div>
+
+<footer>Оригинальная шпаргалка на русском языке для репозитория 2web/cheat-sheet-pdf.</footer>
+</body>
+</html>

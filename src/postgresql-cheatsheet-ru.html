@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Шпаргалка по PostgreSQL</title>
+<link rel="stylesheet" href="cheatsheet.css">
+</head>
+<body>
+<h1>Шпаргалка по PostgreSQL</h1>
+<p class="lead">Команды psql, типы данных и таблицы, выборки и соединения, индексы и план запроса, транзакции, роли и права, резервные копии, обслуживание и диагностика.</p>
+
+<div class="cols">
+
+<section>
+<h2>psql</h2>
+<dl>
+  <dt>psql -h host -U user -d dbname</dt>
+  <dd>Подключение; пароль спрашивается или берётся из <code>~/.pgpass</code></dd>
+  <dt>\l / \c база</dt>
+  <dd>Список баз; переключиться на другую</dd>
+  <dt>\dt / \d таблица</dt>
+  <dd>Таблицы схемы; структура таблицы с индексами и ограничениями</dd>
+  <dt>\dn / \df / \du</dt>
+  <dd>Схемы, функции, роли</dd>
+  <dt>\x</dt>
+  <dd>Вертикальный вывод — удобно для широких строк</dd>
+  <dt>\timing</dt>
+  <dd>Показывать время выполнения запросов</dd>
+  <dt>\i файл.sql / \o out.txt</dt>
+  <dd>Выполнить скрипт; направить вывод в файл</dd>
+  <dt>\copy (SELECT ...) TO 'f.csv' CSV HEADER</dt>
+  <dd>Выгрузка на стороне клиента, без прав суперпользователя</dd>
+  <dt>\q</dt>
+  <dd>Выход</dd>
+</dl>
+</section>
+
+<section>
+<h2>Базы, схемы, таблицы</h2>
+<pre>CREATE DATABASE shop;
+CREATE SCHEMA app;
+
+CREATE TABLE app.users (
+    id         bigserial PRIMARY KEY,
+    email      text NOT NULL UNIQUE,
+    name       text,
+    balance    numeric(12,2) DEFAULT 0,
+    is_active  boolean NOT NULL DEFAULT true,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE app.users ADD COLUMN phone text;
+ALTER TABLE app.users RENAME COLUMN name TO full_name;
+DROP TABLE app.users;</pre>
+<p class="note">Для денег берите <code>numeric</code>, а не <code>float</code>. Для времени — <code>timestamptz</code>: он хранит момент с учётом часового пояса.</p>
+</section>
+
+<section>
+<h2>Типы данных</h2>
+<ul class="gloss">
+  <li><b>Числа:</b> smallint, integer, bigint, numeric(p,s), double precision.</li>
+  <li><b>Строки:</b> text (обычный выбор), varchar(n), char(n).</li>
+  <li><b>Дата и время:</b> date, time, timestamptz, interval.</li>
+  <li><b>Логический:</b> boolean.</li>
+  <li><b>Структуры:</b> jsonb, массивы (<code>text[]</code>), hstore.</li>
+  <li><b>Прочее:</b> uuid, inet, tsvector для полнотекстового поиска.</li>
+</ul>
+</section>
+
+<section>
+<h2>Запросы</h2>
+<pre>SELECT id, email
+FROM app.users
+WHERE is_active AND created_at &gt;= now() - interval '30 days'
+ORDER BY created_at DESC
+LIMIT 20 OFFSET 0;
+
+INSERT INTO app.users (email, full_name)
+VALUES ('a@b.com', 'Аня')
+ON CONFLICT (email) DO UPDATE
+    SET full_name = EXCLUDED.full_name
+RETURNING id;
+
+UPDATE app.users SET balance = balance + 100 WHERE id = 1;
+DELETE FROM app.users WHERE is_active = false;</pre>
+<dl>
+  <dt>RETURNING</dt>
+  <dd>Вернуть изменённые строки без второго запроса</dd>
+  <dt>ON CONFLICT</dt>
+  <dd>Вставить или обновить одной командой</dd>
+  <dt>COALESCE(a, b) / NULLIF(a, b)</dt>
+  <dd>Первое не-NULL значение; NULL при равенстве</dd>
+</dl>
+</section>
+
+<section>
+<h2>Соединения и группировка</h2>
+<dl>
+  <dt>INNER JOIN</dt>
+  <dd>Только совпавшие строки обеих таблиц</dd>
+  <dt>LEFT JOIN</dt>
+  <dd>Все строки левой; отсутствующие справа станут NULL</dd>
+  <dt>FULL JOIN / CROSS JOIN</dt>
+  <dd>Обе стороны целиком; все пары строк</dd>
+  <dt>GROUP BY … HAVING</dt>
+  <dd>Агрегация и фильтр по результату агрегации</dd>
+  <dt>count(*), sum(), avg(), min(), max()</dt>
+  <dd>Основные агрегатные функции</dd>
+  <dt>string_agg(name, ', ')</dt>
+  <dd>Склеить значения группы в строку</dd>
+  <dt>DISTINCT ON (user_id) …</dt>
+  <dd>По одной строке на группу — особенность PostgreSQL</dd>
+</dl>
+<pre>SELECT u.id,
+       count(o.id) AS orders,
+       sum(o.total) AS revenue
+FROM app.users u
+LEFT JOIN app.orders o ON o.user_id = u.id
+GROUP BY u.id
+HAVING count(o.id) &gt; 0
+ORDER BY revenue DESC NULLS LAST;</pre>
+</section>
+
+<section>
+<h2>Оконные функции и CTE</h2>
+<pre>WITH recent AS (
+    SELECT * FROM app.orders
+    WHERE created_at &gt; now() - interval '7 days'
+)
+SELECT user_id,
+       total,
+       row_number() OVER (PARTITION BY user_id ORDER BY total DESC) AS rn,
+       sum(total)   OVER (PARTITION BY user_id) AS user_total
+FROM recent;</pre>
+<p class="note">Оконные функции считают по группе, не схлопывая строки. Полезны <code>row_number</code>, <code>rank</code>, <code>lag</code>, <code>lead</code>, нарастающие суммы.</p>
+</section>
+
+<section>
+<h2>Индексы</h2>
+<dl>
+  <dt>CREATE INDEX ON app.users (email);</dt>
+  <dd>Обычный индекс B-дерева</dd>
+  <dt>CREATE UNIQUE INDEX ...</dt>
+  <dd>Уникальность значения</dd>
+  <dt>CREATE INDEX CONCURRENTLY ...</dt>
+  <dd>Построение без блокировки записи — так делают на рабочей базе</dd>
+  <dt>CREATE INDEX ON t (a, b);</dt>
+  <dd>Составной: порядок столбцов важен, работает для условий по префиксу</dd>
+  <dt>CREATE INDEX ON t (lower(email));</dt>
+  <dd>По выражению — если ищете по нему же</dd>
+  <dt>CREATE INDEX ON t USING gin (doc jsonb_path_ops);</dt>
+  <dd>GIN для jsonb, массивов и полнотекстового поиска</dd>
+  <dt>CREATE INDEX ON t (id) WHERE is_active;</dt>
+  <dd>Частичный индекс: меньше и быстрее</dd>
+</dl>
+<p class="warn">Индексы ускоряют чтение и замедляют запись. Неиспользуемые находите через <code>pg_stat_user_indexes</code> и удаляйте.</p>
+</section>
+
+<section>
+<h2>План запроса</h2>
+<dl>
+  <dt>EXPLAIN запрос</dt>
+  <dd>Предполагаемый план без выполнения</dd>
+  <dt>EXPLAIN (ANALYZE, BUFFERS) запрос</dt>
+  <dd>Реальное выполнение с временем и обращениями к данным</dd>
+  <dt>Seq Scan</dt>
+  <dd>Полный проход таблицы: нормально для маленьких, подозрительно для больших</dd>
+  <dt>Index Scan / Bitmap Heap Scan</dt>
+  <dd>Работа через индекс</dd>
+  <dt>Nested Loop / Hash Join / Merge Join</dt>
+  <dd>Способы соединения таблиц</dd>
+  <dt>rows= в плане против actual rows</dt>
+  <dd>Сильное расхождение — признак устаревшей статистики: выполните ANALYZE</dd>
+</dl>
+</section>
+
+<section>
+<h2>Транзакции</h2>
+<dl>
+  <dt>BEGIN; … COMMIT; / ROLLBACK;</dt>
+  <dd>Начать, подтвердить, отменить</dd>
+  <dt>SAVEPOINT s1; ROLLBACK TO s1;</dt>
+  <dd>Точка возврата внутри транзакции</dd>
+  <dt>SELECT … FOR UPDATE</dt>
+  <dd>Заблокировать строки до конца транзакции</dd>
+  <dt>SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;</dt>
+  <dd>Уровень изоляции; по умолчанию READ COMMITTED</dd>
+  <dt>SET lock_timeout = '5s';</dt>
+  <dd>Не ждать блокировку бесконечно</dd>
+</dl>
+</section>
+
+<section>
+<h2>Роли и права</h2>
+<dl>
+  <dt>CREATE ROLE app LOGIN PASSWORD '…';</dt>
+  <dd>Учётная запись приложения</dd>
+  <dt>GRANT SELECT, INSERT ON ALL TABLES IN SCHEMA app TO app;</dt>
+  <dd>Права на существующие таблицы</dd>
+  <dt>ALTER DEFAULT PRIVILEGES IN SCHEMA app GRANT SELECT ON TABLES TO readonly;</dt>
+  <dd>Права на таблицы, которые появятся позже</dd>
+  <dt>REVOKE ALL ON DATABASE shop FROM PUBLIC;</dt>
+  <dd>Убрать доступ по умолчанию</dd>
+  <dt>\du</dt>
+  <dd>Список ролей и их атрибутов</dd>
+</dl>
+</section>
+
+<section>
+<h2>Копии и восстановление</h2>
+<dl>
+  <dt>pg_dump -Fc -d shop -f shop.dump</dt>
+  <dd>Копия базы в сжатом формате</dd>
+  <dt>pg_restore -d shop shop.dump</dt>
+  <dd>Восстановление (<code>-j 4</code> — в несколько потоков)</dd>
+  <dt>pg_dumpall --globals-only</dt>
+  <dd>Роли и права кластера отдельно</dd>
+  <dt>pg_basebackup -D /backup -Ft -z</dt>
+  <dd>Физическая копия кластера — основа восстановления на момент времени</dd>
+</dl>
+<p class="note">Копия без проверенного восстановления — не копия: отрабатывайте процедуру заранее.</p>
+</section>
+
+<section>
+<h2>Обслуживание и диагностика</h2>
+<dl>
+  <dt>SELECT * FROM pg_stat_activity WHERE state != 'idle';</dt>
+  <dd>Что выполняется прямо сейчас</dd>
+  <dt>SELECT pg_terminate_backend(pid);</dt>
+  <dd>Прервать зависший запрос</dd>
+  <dt>SELECT pg_size_pretty(pg_database_size('shop'));</dt>
+  <dd>Размер базы; для таблицы — <code>pg_total_relation_size</code></dd>
+  <dt>VACUUM (VERBOSE, ANALYZE) таблица;</dt>
+  <dd>Уборка мёртвых строк и обновление статистики</dd>
+  <dt>REINDEX INDEX CONCURRENTLY имя;</dt>
+  <dd>Перестроить раздувшийся индекс</dd>
+  <dt>pg_stat_statements</dt>
+  <dd>Расширение со статистикой по запросам — первый инструмент при поиске медленных мест</dd>
+  <dt>SHOW shared_buffers; / ALTER SYSTEM SET work_mem = '32MB';</dt>
+  <dd>Просмотр и изменение параметров сервера</dd>
+</dl>
+</section>
+
+</div>
+
+<footer>Оригинальная шпаргалка на русском языке для репозитория 2web/cheat-sheet-pdf.</footer>
+</body>
+</html>
