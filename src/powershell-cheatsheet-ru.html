@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Шпаргалка по PowerShell</title>
+<link rel="stylesheet" href="cheatsheet.css">
+</head>
+<body>
+<h1>Шпаргалка по PowerShell</h1>
+<p class="lead">Командлеты и конвейер объектов, файлы и реестр, процессы и службы, сеть, скрипты и функции, удалённое выполнение. Примеры для PowerShell 5.1 и PowerShell 7.</p>
+
+<div class="cols">
+
+<section>
+<h2>Как устроены команды</h2>
+<p class="note">Имя командлета — это пара «Глагол-Существительное»: <code>Get-Process</code>, <code>Set-Location</code>, <code>New-Item</code>. По конвейеру передаются объекты, а не текст, поэтому у результата есть свойства.</p>
+<dl>
+  <dt>Get-Command *service*</dt>
+  <dd>Найти командлет по части имени</dd>
+  <dt>Get-Help Get-Process -Examples</dt>
+  <dd>Справка с примерами (<code>-Full</code> — целиком, <code>-Online</code> — в браузере)</dd>
+  <dt>Get-Member</dt>
+  <dd>Свойства и методы объекта: <code>Get-Process | Get-Member</code></dd>
+  <dt>Get-Alias ls</dt>
+  <dd>Что скрывается за коротким именем</dd>
+  <dt>$PSVersionTable</dt>
+  <dd>Версия PowerShell и платформы</dd>
+</dl>
+</section>
+
+<section>
+<h2>Конвейер</h2>
+<dl>
+  <dt>Where-Object { $_.CPU -gt 100 }</dt>
+  <dd>Фильтр; <code>$_</code> — текущий объект. Краткая форма: <code>Where CPU -gt 100</code></dd>
+  <dt>Select-Object Name, Id -First 10</dt>
+  <dd>Выбрать поля и первые строки</dd>
+  <dt>Sort-Object CPU -Descending</dt>
+  <dd>Сортировка</dd>
+  <dt>ForEach-Object { $_.Name.ToUpper() }</dt>
+  <dd>Действие над каждым объектом</dd>
+  <dt>Group-Object Status</dt>
+  <dd>Сгруппировать и посчитать</dd>
+  <dt>Measure-Object Length -Sum -Average</dt>
+  <dd>Суммы и средние по числовому свойству</dd>
+  <dt>Format-Table -AutoSize / Format-List</dt>
+  <dd>Вывод таблицей или списком — только в самом конце конвейера</dd>
+</dl>
+</section>
+
+<section>
+<h2>Файлы и каталоги</h2>
+<dl>
+  <dt>Get-ChildItem C:\logs -Recurse -Filter *.log</dt>
+  <dd>Обход дерева каталогов с фильтром (алиасы: <code>dir</code>, <code>ls</code>)</dd>
+  <dt>Get-Content app.log -Tail 50 -Wait</dt>
+  <dd>Последние строки и слежение за файлом</dd>
+  <dt>Set-Content / Add-Content</dt>
+  <dd>Записать файл заново; дописать в конец</dd>
+  <dt>Copy-Item, Move-Item, Remove-Item</dt>
+  <dd>Копирование, перемещение, удаление (<code>-Recurse -Force</code>)</dd>
+  <dt>New-Item -ItemType Directory -Path C:\app\data</dt>
+  <dd>Создать каталог</dd>
+  <dt>Test-Path C:\app\config.json</dt>
+  <dd>Проверить существование</dd>
+  <dt>Select-String -Pattern "error" -Path *.log</dt>
+  <dd>Поиск по содержимому — аналог grep</dd>
+  <dt>Get-FileHash file.iso -Algorithm SHA256</dt>
+  <dd>Контрольная сумма</dd>
+</dl>
+</section>
+
+<section>
+<h2>Процессы и службы</h2>
+<dl>
+  <dt>Get-Process -Name chrome</dt>
+  <dd>Процессы по имени</dd>
+  <dt>Stop-Process -Id 1234 -Force</dt>
+  <dd>Завершить процесс</dd>
+  <dt>Start-Process notepad -ArgumentList file.txt</dt>
+  <dd>Запустить программу</dd>
+  <dt>Get-Service | Where Status -eq Running</dt>
+  <dd>Запущенные службы</dd>
+  <dt>Restart-Service spooler</dt>
+  <dd>Перезапуск службы (есть Start, Stop, Set)</dd>
+  <dt>Get-EventLog -LogName System -Newest 20</dt>
+  <dd>Журнал событий; в PowerShell 7 — <code>Get-WinEvent</code></dd>
+</dl>
+</section>
+
+<section>
+<h2>Сеть</h2>
+<dl>
+  <dt>Test-NetConnection example.com -Port 443</dt>
+  <dd>Проверка доступности узла и порта</dd>
+  <dt>Invoke-WebRequest https://example.com -OutFile page.html</dt>
+  <dd>Скачать страницу или файл</dd>
+  <dt>Invoke-RestMethod https://api.example.com/users</dt>
+  <dd>Запрос к API: JSON сразу превращается в объекты</dd>
+  <dt>Get-NetIPAddress / Get-NetTCPConnection</dt>
+  <dd>Адреса интерфейсов и открытые соединения</dd>
+  <dt>Resolve-DnsName example.com</dt>
+  <dd>Запрос к DNS</dd>
+</dl>
+</section>
+
+<section>
+<h2>Переменные и типы</h2>
+<dl>
+  <dt>$name = "Аня"; $count = 10</dt>
+  <dd>Переменная; тип определяется автоматически</dd>
+  <dt>[int]$x = "42"</dt>
+  <dd>Явное приведение типа</dd>
+  <dt>$list = @(1, 2, 3)</dt>
+  <dd>Массив; <code>$list += 4</code> создаёт новый</dd>
+  <dt>$map = @{ name = "Аня"; age = 30 }</dt>
+  <dd>Хеш-таблица; обращение <code>$map.name</code></dd>
+  <dt>"Привет, $name! Всего: $($list.Count)"</dt>
+  <dd>Подстановка в двойных кавычках; в одинарных — текст как есть</dd>
+  <dt>$env:PATH</dt>
+  <dd>Переменные окружения</dd>
+</dl>
+</section>
+
+<section>
+<h2>Условия и циклы</h2>
+<pre>if ($count -gt 10) { "много" }
+elseif ($count -eq 0) { "пусто" }
+else { "мало" }
+
+foreach ($item in $list) { $item }
+
+for ($i = 0; $i -lt 5; $i++) { $i }
+
+while ($queue.Count) { $queue.Pop() }
+
+switch ($status) {
+    "ok"   { "готово" }
+    "fail" { "ошибка" }
+    default { "неизвестно" }
+}</pre>
+<p class="note">Сравнения записываются словами: <code>-eq -ne -gt -lt -ge -le -like -match -contains -in</code>. Отрицание — <code>-not</code> или <code>!</code>, объединение — <code>-and</code>, <code>-or</code>.</p>
+</section>
+
+<section>
+<h2>Скрипты и функции</h2>
+<pre>function Get-BigFiles {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Path,
+        [int]$MinMB = 100
+    )
+
+    Get-ChildItem $Path -Recurse -File |
+        Where-Object { $_.Length -gt $MinMB * 1MB } |
+        Sort-Object Length -Descending
+}
+
+Get-BigFiles -Path C:\data -MinMB 500</pre>
+<dl>
+  <dt>.\script.ps1 -Param значение</dt>
+  <dd>Запуск скрипта из текущего каталога</dd>
+  <dt>Get-ExecutionPolicy / Set-ExecutionPolicy RemoteSigned -Scope CurrentUser</dt>
+  <dd>Политика запуска скриптов: по умолчанию выполнение часто запрещено</dd>
+  <dt>try { ... } catch { $_.Exception.Message } finally { ... }</dt>
+  <dd>Обработка ошибок</dd>
+  <dt>-ErrorAction Stop</dt>
+  <dd>Сделать ошибку командлета перехватываемой в catch</dd>
+  <dt>-WhatIf / -Confirm</dt>
+  <dd>Показать, что произойдёт, не выполняя; спросить подтверждение</dd>
+</dl>
+</section>
+
+<section>
+<h2>Данные и форматы</h2>
+<dl>
+  <dt>Import-Csv users.csv | Where Age -gt 30</dt>
+  <dd>CSV превращается в объекты со свойствами по заголовкам</dd>
+  <dt>Export-Csv out.csv -NoTypeInformation -Encoding UTF8</dt>
+  <dd>Выгрузка результата в CSV</dd>
+  <dt>Get-Content data.json | ConvertFrom-Json</dt>
+  <dd>Разбор JSON в объекты</dd>
+  <dt>$obj | ConvertTo-Json -Depth 5</dt>
+  <dd>Обратное преобразование; глубина по умолчанию мала</dd>
+  <dt>Out-File -Encoding UTF8 / Out-GridView</dt>
+  <dd>Запись в файл; интерактивная таблица в окне</dd>
+</dl>
+</section>
+
+<section>
+<h2>Удалённое выполнение</h2>
+<dl>
+  <dt>Enter-PSSession -ComputerName srv1</dt>
+  <dd>Интерактивный сеанс на другом компьютере</dd>
+  <dt>Invoke-Command -ComputerName srv1, srv2 -ScriptBlock { Get-Service }</dt>
+  <dd>Выполнить блок команд сразу на нескольких узлах</dd>
+  <dt>$cred = Get-Credential</dt>
+  <dd>Запросить логин и пароль, передаётся параметром <code>-Credential</code></dd>
+  <dt>New-PSSession / Remove-PSSession</dt>
+  <dd>Постоянный сеанс для серии команд</dd>
+</dl>
+</section>
+
+<section>
+<h2>Полезные привычки</h2>
+<ul class="gloss">
+  <li>Сначала посмотрите на объект через <code>Get-Member</code> — станет ясно, какие свойства можно фильтровать.</li>
+  <li><code>Format-*</code> ставится только в конец: после него в конвейере остаётся текст, а не объекты.</li>
+  <li>Опасные действия проверяйте с <code>-WhatIf</code>.</li>
+  <li>Модули ставятся из галереи: <code>Install-Module имя -Scope CurrentUser</code>.</li>
+  <li>PowerShell 7 кроссплатформенный, команда запуска — <code>pwsh</code>; часть Windows-командлетов в нём недоступна.</li>
+</ul>
+</section>
+
+</div>
+
+<footer>Оригинальная шпаргалка на русском языке для репозитория 2web/cheat-sheet-pdf.</footer>
+</body>
+</html>
