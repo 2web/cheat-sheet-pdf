@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Шпаргалка по Python</title>
+<link rel="stylesheet" href="cheatsheet.css">
+</head>
+<body>
+<h1>Шпаргалка по Python</h1>
+<p class="lead">Основы синтаксиса, коллекции и срезы, функции, классы, файлы и исключения, окружения и полезные модули стандартной библиотеки. Примеры для Python 3.9 и новее.</p>
+
+<div class="cols">
+
+<section>
+<h2>Типы и переменные</h2>
+<dl>
+  <dt>x = 42; y = 3.14; s = "текст"; flag = True; n = None</dt>
+  <dd>int, float, str, bool, NoneType — объявлять тип заранее не нужно</dd>
+  <dt>type(x), isinstance(x, int)</dt>
+  <dd>Узнать тип; проверить принадлежность типу</dd>
+  <dt>int("42"), float("3.14"), str(42), bool("")</dt>
+  <dd>Преобразования; пустая строка, 0 и пустая коллекция — ложь</dd>
+  <dt>a, b = b, a</dt>
+  <dd>Обмен значений без временной переменной</dd>
+  <dt>x: int = 5</dt>
+  <dd>Аннотация типа: подсказка для редактора и линтера, на выполнение не влияет</dd>
+</dl>
+</section>
+
+<section>
+<h2>Строки</h2>
+<dl>
+  <dt>f"Привет, {name}! Итого: {total:.2f}"</dt>
+  <dd>f-строка: подстановка выражений и форматирование</dd>
+  <dt>s.strip(), s.lower(), s.title()</dt>
+  <dd>Убрать пробелы по краям, регистр</dd>
+  <dt>s.split(","), ", ".join(items)</dt>
+  <dd>Разбить на список и собрать обратно</dd>
+  <dt>s.replace("а", "б"), s.startswith("http")</dt>
+  <dd>Замена подстроки, проверка начала (есть и endswith)</dd>
+  <dt>"подстрока" in s</dt>
+  <dd>Поиск вхождения; индекс даст s.find() или s.index()</dd>
+  <dt>"""многострочный текст"""</dt>
+  <dd>Строка в несколько строк; r"\d+" — без обработки обратных слешей</dd>
+</dl>
+</section>
+
+<section>
+<h2>Коллекции</h2>
+<dl>
+  <dt>nums = [3, 1, 2]</dt>
+  <dd>Список: изменяемый, упорядоченный</dd>
+  <dt>point = (10, 20)</dt>
+  <dd>Кортеж: неизменяемый, годится как ключ словаря</dd>
+  <dt>uniq = {1, 2, 3}</dt>
+  <dd>Множество: только уникальные значения, быстрые проверки вхождения</dd>
+  <dt>user = {"name": "Аня", "age": 30}</dt>
+  <dd>Словарь: пары ключ — значение</dd>
+  <dt>nums.append(4), nums.extend([5, 6]), nums.pop()</dt>
+  <dd>Добавить элемент, добавить несколько, снять последний</dd>
+  <dt>sorted(nums, key=len, reverse=True)</dt>
+  <dd>Новый отсортированный список; nums.sort() сортирует на месте</dd>
+  <dt>user.get("email", "нет")</dt>
+  <dd>Значение по ключу с запасным вариантом вместо ошибки</dd>
+  <dt>for k, v in user.items():</dt>
+  <dd>Обход словаря; keys() и values() — только ключи или значения</dd>
+</dl>
+</section>
+
+<section>
+<h2>Срезы</h2>
+<dl>
+  <dt>s[0], s[-1]</dt>
+  <dd>Первый и последний элемент</dd>
+  <dt>s[1:4]</dt>
+  <dd>С первого по третий: правая граница не включается</dd>
+  <dt>s[:3], s[3:]</dt>
+  <dd>Начало и хвост последовательности</dd>
+  <dt>s[::2], s[::-1]</dt>
+  <dd>Каждый второй элемент; развернуть</dd>
+</dl>
+</section>
+
+<section>
+<h2>Ветвления и циклы</h2>
+<pre>if score &gt; 90:
+    grade = "отлично"
+elif score &gt; 70:
+    grade = "хорошо"
+else:
+    grade = "нужно повторить"
+
+for i, item in enumerate(items, start=1):
+    print(i, item)
+
+for name, score in zip(names, scores):
+    ...
+
+while queue:
+    task = queue.pop()</pre>
+<dl>
+  <dt>break / continue</dt>
+  <dd>Прервать цикл; перейти к следующей итерации</dd>
+  <dt>range(0, 10, 2)</dt>
+  <dd>Последовательность чисел с шагом</dd>
+  <dt>match value: case ...:</dt>
+  <dd>Сопоставление с образцом, доступно с версии 3.10</dd>
+</dl>
+</section>
+
+<section>
+<h2>Генераторы коллекций</h2>
+<dl>
+  <dt>[x * 2 for x in nums if x &gt; 0]</dt>
+  <dd>Список из преобразованных и отфильтрованных элементов</dd>
+  <dt>{w: len(w) for w in words}</dt>
+  <dd>Словарь: ключ — слово, значение — длина</dd>
+  <dt>{x % 3 for x in nums}</dt>
+  <dd>Множество уникальных значений</dd>
+  <dt>sum(x * x for x in nums)</dt>
+  <dd>Генераторное выражение: считает по мере обхода, не занимая память</dd>
+</dl>
+</section>
+
+<section>
+<h2>Функции</h2>
+<pre>def greet(name: str, greeting: str = "Привет") -&gt; str:
+    """Возвращает приветствие."""
+    return f"{greeting}, {name}!"
+
+def total(*args, **kwargs):
+    ...</pre>
+<dl>
+  <dt>*args / **kwargs</dt>
+  <dd>Произвольное число позиционных и именованных аргументов</dd>
+  <dt>lambda x: x * 2</dt>
+  <dd>Короткая безымянная функция — обычно как аргумент key=</dd>
+  <dt>yield</dt>
+  <dd>Превращает функцию в генератор: значения отдаются по одному</dd>
+</dl>
+<p class="warn"><b>Ловушка:</b> изменяемое значение по умолчанию (<code>def f(items=[])</code>) создаётся один раз и сохраняется между вызовами. Пишите <code>items=None</code> и создавайте список внутри.</p>
+</section>
+
+<section>
+<h2>Классы</h2>
+<pre>class User:
+    def __init__(self, name: str):
+        self.name = name
+
+    def __repr__(self) -&gt; str:
+        return f"User({self.name!r})"
+
+from dataclasses import dataclass
+
+@dataclass
+class Point:
+    x: int
+    y: int = 0</pre>
+<dl>
+  <dt>@dataclass</dt>
+  <dd>Сам создаёт __init__, __repr__ и сравнение — меньше однотипного кода</dd>
+  <dt>@property</dt>
+  <dd>Метод, к которому обращаются как к атрибуту</dd>
+  <dt>@staticmethod / @classmethod</dt>
+  <dd>Без доступа к экземпляру; с классом первым аргументом</dd>
+</dl>
+</section>
+
+<section>
+<h2>Файлы и контекст</h2>
+<pre>from pathlib import Path
+
+text = Path("data.txt").read_text(encoding="utf-8")
+
+with open("out.csv", "w", encoding="utf-8") as f:
+    f.write("a;b\n")
+
+import json
+data = json.loads(raw)
+raw = json.dumps(data, ensure_ascii=False, indent=2)</pre>
+<p class="note">Конструкция <code>with</code> закрывает файл даже при ошибке. Для путей удобнее <code>pathlib</code>: <code>Path("dir") / "file.txt"</code>, <code>.exists()</code>, <code>.glob("*.log")</code>.</p>
+</section>
+
+<section>
+<h2>Исключения</h2>
+<pre>try:
+    value = int(raw)
+except ValueError as exc:
+    print("не число:", exc)
+except (KeyError, IndexError):
+    ...
+else:
+    print("успех")
+finally:
+    cleanup()</pre>
+<dl>
+  <dt>raise ValueError("сообщение")</dt>
+  <dd>Возбудить исключение</dd>
+  <dt>raise RuntimeError("не вышло") from exc</dt>
+  <dd>Сохранить исходную причину в цепочке</dd>
+</dl>
+</section>
+
+<section>
+<h2>Окружение и пакеты</h2>
+<dl>
+  <dt>python -m venv .venv</dt>
+  <dd>Создать виртуальное окружение в каталоге проекта</dd>
+  <dt>source .venv/bin/activate</dt>
+  <dd>Активировать (в Windows: <code>.venv\Scripts\activate</code>)</dd>
+  <dt>pip install -r requirements.txt</dt>
+  <dd>Установить зависимости из файла</dd>
+  <dt>pip freeze &gt; requirements.txt</dt>
+  <dd>Зафиксировать текущие версии</dd>
+  <dt>python -m module</dt>
+  <dd>Запустить модуль как программу (<code>http.server</code>, <code>json.tool</code>, <code>pytest</code>)</dd>
+</dl>
+</section>
+
+<section>
+<h2>Из стандартной библиотеки</h2>
+<ul class="gloss">
+  <li><b>pathlib</b> — пути и файлы. <b>os</b>, <b>sys</b>, <b>shutil</b> — система и оболочка.</li>
+  <li><b>json</b>, <b>csv</b>, <b>sqlite3</b> — данные и хранение.</li>
+  <li><b>datetime</b>, <b>zoneinfo</b> — даты и часовые пояса.</li>
+  <li><b>re</b> — регулярные выражения. <b>argparse</b> — разбор аргументов командной строки.</li>
+  <li><b>collections</b> (Counter, defaultdict, deque), <b>itertools</b>, <b>functools</b> (cache, partial).</li>
+  <li><b>logging</b> вместо print в рабочем коде; <b>unittest</b> и внешний <b>pytest</b> для тестов.</li>
+</ul>
+</section>
+
+</div>
+
+<footer>Оригинальная шпаргалка на русском языке для репозитория 2web/cheat-sheet-pdf.</footer>
+</body>
+</html>

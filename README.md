@@ -61,9 +61,11 @@
 ### Python :snake:
 * [Python 3 — основы](pdf/cheatsheet-python-grok.pdf)
 * [Python для начинающих](pdf/python_beginners.pdf)
+* [Шпаргалка по Python на русском](pdf/python-cheatsheet-ru.pdf): оригинальная русскоязычная шпаргалка — типы, строки, коллекции и срезы, функции, классы, файлы, исключения, окружения и стандартная библиотека.
 
 ### Go (Golang) :racehorse:
 * [Go (Golang)](pdf/go_golang.pdf): Go, также известный как Golang, — статически типизированный компилируемый язык программирования, разработанный в Google.
+* [Шпаргалка по Go на русском](pdf/go-cheatsheet-ru.pdf): оригинальная русскоязычная шпаргалка — типы, срезы и карты, ошибки, структуры и интерфейсы, горутины и каналы, модули и инструменты.
 
 ### Git :octocat:
 * [Git от Atlassian](pdf/atlassian-git-cheatsheet.pdf)
@@ -75,6 +77,7 @@
 ### Регулярные выражения (Regex) :mag:
 * [Regex](pdf/regex.pdf): Регулярные выражения — специальные текстовые строки для описания шаблонов поиска.
 * [Regex для Python](pdf/python-regular-expression-regex.pdf)
+* [Шпаргалка по регулярным выражениям на русском](pdf/regex-cheatsheet-ru.pdf): оригинальная русскоязычная шпаргалка — метасимволы, классы, повторители, группы, проверки вокруг совпадения, флаги, примеры для Python и grep.
 
 ### PowerShell :electric_plug:
 * [PowerShell](pdf/Powershell.pdf): PowerShell — фреймворк Microsoft для автоматизации задач и управления конфигурацией.
