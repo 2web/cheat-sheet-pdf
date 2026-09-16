@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Шпаргалка по Kubernetes</title>
+<link rel="stylesheet" href="cheatsheet.css">
+</head>
+<body>
+<h1>Шпаргалка по Kubernetes</h1>
+<p class="lead">Объекты кластера, повседневные команды kubectl, манифесты Deployment и Service, настройки и секреты, обновления и откаты, диагностика неполадок.</p>
+
+<div class="cols">
+
+<section>
+<h2>Основные объекты</h2>
+<ul class="gloss">
+  <li><b>Pod</b> — минимальная единица запуска: один или несколько контейнеров с общей сетью и томами.</li>
+  <li><b>Deployment</b> — поддерживает нужное число подов и управляет обновлением без простоя.</li>
+  <li><b>StatefulSet</b> — для приложений с состоянием: устойчивые имена и тома.</li>
+  <li><b>DaemonSet</b> — по одному поду на каждый узел (агенты, сбор журналов).</li>
+  <li><b>Service</b> — постоянный адрес и балансировка между подами.</li>
+  <li><b>Ingress</b> — маршрутизация внешнего HTTP-трафика по именам и путям.</li>
+  <li><b>ConfigMap</b> и <b>Secret</b> — настройки и чувствительные данные отдельно от образа.</li>
+  <li><b>Namespace</b> — логическое разделение кластера на области.</li>
+</ul>
+</section>
+
+<section>
+<h2>Осмотреться</h2>
+<dl>
+  <dt>kubectl get pods -n prod</dt>
+  <dd>Список подов в пространстве имён (<code>-A</code> — во всех)</dd>
+  <dt>kubectl get pods -o wide</dt>
+  <dd>Дополнительно узел и IP-адрес</dd>
+  <dt>kubectl get all</dt>
+  <dd>Основные объекты пространства имён разом</dd>
+  <dt>kubectl describe pod &lt;имя&gt;</dt>
+  <dd>Подробности и события — первое место, куда смотреть при сбое</dd>
+  <dt>kubectl logs &lt;под&gt; -f --tail=100</dt>
+  <dd>Журнал контейнера; <code>-c &lt;контейнер&gt;</code> при нескольких, <code>-p</code> — от предыдущего запуска</dd>
+  <dt>kubectl get events --sort-by=.lastTimestamp</dt>
+  <dd>События кластера по времени</dd>
+  <dt>kubectl top pods / nodes</dt>
+  <dd>Потребление процессора и памяти (нужен metrics-server)</dd>
+</dl>
+</section>
+
+<section>
+<h2>Действия</h2>
+<dl>
+  <dt>kubectl apply -f manifest.yaml</dt>
+  <dd>Создать или обновить объекты из файла или каталога (<code>-k</code> — kustomize)</dd>
+  <dt>kubectl delete -f manifest.yaml</dt>
+  <dd>Удалить описанные объекты</dd>
+  <dt>kubectl exec -it &lt;под&gt; -- sh</dt>
+  <dd>Оболочка внутри контейнера</dd>
+  <dt>kubectl port-forward svc/api 8080:80</dt>
+  <dd>Пробросить порт сервиса на локальную машину</dd>
+  <dt>kubectl cp &lt;под&gt;:/путь ./файл</dt>
+  <dd>Скопировать файлы из пода и обратно</dd>
+  <dt>kubectl scale deploy/api --replicas=5</dt>
+  <dd>Изменить число экземпляров</dd>
+  <dt>kubectl rollout restart deploy/api</dt>
+  <dd>Перезапустить поды, не меняя манифест</dd>
+  <dt>kubectl run tmp --rm -it --image=busybox -- sh</dt>
+  <dd>Одноразовый под для проверки сети и DNS</dd>
+</dl>
+</section>
+
+<section>
+<h2>Контексты и пространства</h2>
+<dl>
+  <dt>kubectl config get-contexts</dt>
+  <dd>Список кластеров в kubeconfig</dd>
+  <dt>kubectl config use-context &lt;имя&gt;</dt>
+  <dd>Переключиться на другой кластер</dd>
+  <dt>kubectl config set-context --current --namespace=prod</dt>
+  <dd>Пространство имён по умолчанию</dd>
+  <dt>kubectl api-resources</dt>
+  <dd>Какие типы объектов поддерживает кластер и их сокращения</dd>
+</dl>
+<p class="warn"><b>Осторожно:</b> перед изменениями проверяйте текущий контекст — команда, отправленная не в тот кластер, самая частая причина аварий.</p>
+</section>
+
+<section>
+<h2>Deployment</h2>
+<pre>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  replicas: 3
+  selector:
+    matchLabels: { app: api }
+  template:
+    metadata:
+      labels: { app: api }
+    spec:
+      containers:
+        - name: api
+          image: registry.example.com/api:1.4.2
+          ports: [{ containerPort: 8080 }]
+          env:
+            - name: LOG_LEVEL
+              value: info
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits:   { cpu: 500m, memory: 512Mi }
+          readinessProbe:
+            httpGet: { path: /health, port: 8080 }
+            initialDelaySeconds: 5</pre>
+<p class="note"><b>requests</b> — сколько гарантированно выделяется и по чему планировщик выбирает узел; <b>limits</b> — верхняя граница. Превышение памяти приводит к принудительному перезапуску контейнера.</p>
+</section>
+
+<section>
+<h2>Service и Ingress</h2>
+<pre>apiVersion: v1
+kind: Service
+metadata:
+  name: api
+spec:
+  selector: { app: api }
+  ports:
+    - port: 80
+      targetPort: 8080</pre>
+<dl>
+  <dt>ClusterIP</dt>
+  <dd>Тип по умолчанию: адрес доступен только внутри кластера</dd>
+  <dt>NodePort</dt>
+  <dd>Порт на каждом узле — обычно для тестов</dd>
+  <dt>LoadBalancer</dt>
+  <dd>Внешний балансировщик у облачного провайдера</dd>
+  <dt>api.prod.svc.cluster.local</dt>
+  <dd>Внутреннее DNS-имя; внутри пространства имён достаточно <code>api</code></dd>
+  <dt>Ingress</dt>
+  <dd>HTTP-маршруты и TLS; требует установленного контроллера</dd>
+</dl>
+</section>
+
+<section>
+<h2>Настройки и секреты</h2>
+<dl>
+  <dt>kubectl create configmap app-config --from-file=app.conf</dt>
+  <dd>Настройки из файла</dd>
+  <dt>kubectl create secret generic db --from-literal=password=...</dt>
+  <dd>Секрет из значения</dd>
+  <dt>envFrom: [{ configMapRef: { name: app-config } }]</dt>
+  <dd>Подключить все ключи как переменные окружения</dd>
+  <dt>volumeMounts + volumes</dt>
+  <dd>Подключить как файлы в контейнере</dd>
+</dl>
+<p class="warn"><b>Важно:</b> данные Secret хранятся в кодировке base64, а не в зашифрованном виде. Шифрование на стороне кластера или внешнее хранилище настраивают отдельно.</p>
+</section>
+
+<section>
+<h2>Обновления и откат</h2>
+<dl>
+  <dt>kubectl set image deploy/api api=api:1.4.3</dt>
+  <dd>Обновить образ и запустить поочерёдную замену подов</dd>
+  <dt>kubectl rollout status deploy/api</dt>
+  <dd>Следить за ходом обновления</dd>
+  <dt>kubectl rollout history deploy/api</dt>
+  <dd>История версий</dd>
+  <dt>kubectl rollout undo deploy/api</dt>
+  <dd>Вернуться к предыдущей версии (<code>--to-revision=N</code> — к конкретной)</dd>
+  <dt>kubectl rollout pause / resume</dt>
+  <dd>Приостановить и продолжить обновление</dd>
+</dl>
+</section>
+
+<section>
+<h2>Состояния подов</h2>
+<ul class="gloss">
+  <li><b>Pending</b> — нет подходящего узла: не хватает ресурсов или не выполняются ограничения размещения.</li>
+  <li><b>ImagePullBackOff</b> — образ не скачивается: опечатка в имени, нет тега или доступа к реестру.</li>
+  <li><b>CrashLoopBackOff</b> — контейнер падает и перезапускается: смотрите <code>logs -p</code>.</li>
+  <li><b>OOMKilled</b> — превышен лимит памяти; поднимайте limits или ищите утечку.</li>
+  <li><b>Evicted</b> — узел вытеснил под из-за нехватки ресурсов или места на диске.</li>
+  <li><b>Terminating</b> надолго — под держит завершение: проверьте preStop и грациозное отключение.</li>
+</ul>
+</section>
+
+<section>
+<h2>Диагностика</h2>
+<dl>
+  <dt>kubectl get pod &lt;имя&gt; -o yaml</dt>
+  <dd>Полное описание с текущим состоянием</dd>
+  <dt>kubectl describe node &lt;узел&gt;</dt>
+  <dd>Ресурсы узла, ограничения и размещённые поды</dd>
+  <dt>kubectl get pods --field-selector status.phase!=Running</dt>
+  <dd>Только проблемные поды</dd>
+  <dt>kubectl auth can-i create deploy -n prod</dt>
+  <dd>Проверить собственные права</dd>
+  <dt>kubectl apply --dry-run=server -f m.yaml</dt>
+  <dd>Проверка манифеста без применения</dd>
+  <dt>kubectl diff -f m.yaml</dt>
+  <dd>Что именно изменится в кластере</dd>
+</dl>
+</section>
+
+<section>
+<h2>Полезные привычки</h2>
+<ul class="gloss">
+  <li>Манифесты хранить в репозитории, а не менять объекты вручную командами.</li>
+  <li>Всегда указывать конкретный тег образа: <code>latest</code> делает выкладку непредсказуемой.</li>
+  <li>Задавать requests и limits — без них планировщик работает вслепую.</li>
+  <li>Добавлять readiness- и liveness-пробы: первая убирает под из балансировки, вторая перезапускает зависший.</li>
+  <li>Алиас <code>alias k=kubectl</code> и автодополнение экономят массу времени.</li>
+</ul>
+</section>
+
+</div>
+
+<footer>Оригинальная шпаргалка на русском языке для репозитория 2web/cheat-sheet-pdf.</footer>
+</body>
+</html>
