@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Шпаргалка по Jenkins</title>
+<link rel="stylesheet" href="cheatsheet.css">
+</head>
+<body>
+<h1>Шпаргалка по Jenkins</h1>
+<p class="lead">Декларативный Jenkinsfile, шаги и условия, параметры и переменные окружения, учётные данные, агенты, артефакты и тесты, обслуживание сервера и типовые неполадки.</p>
+
+<div class="cols">
+
+<section>
+<h2>Каркас конвейера</h2>
+<pre>pipeline {
+    agent any
+    options {
+        timeout(time: 30, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+    }
+    stages {
+        stage('Сборка') {
+            steps {
+                sh 'make build'
+            }
+        }
+        stage('Тесты') {
+            steps {
+                sh 'make test'
+            }
+        }
+    }
+    post {
+        always  { junit 'reports/*.xml' }
+        failure { echo 'сборка упала' }
+    }
+}</pre>
+<p class="note">Файл называется <code>Jenkinsfile</code> и лежит в корне репозитория. Декларативный синтаксис строже скриптового, но проще читается и лучше проверяется.</p>
+</section>
+
+<section>
+<h2>Где что выполняется</h2>
+<dl>
+  <dt>agent any</dt>
+  <dd>Любой свободный исполнитель</dd>
+  <dt>agent { label 'linux &amp;&amp; docker' }</dt>
+  <dd>Узел с нужными метками</dd>
+  <dt>agent { docker { image 'node:20' } }</dt>
+  <dd>Шаги выполняются внутри контейнера</dd>
+  <dt>agent none</dt>
+  <dd>Глобального агента нет: задаётся отдельно на каждом этапе</dd>
+  <dt>options { skipDefaultCheckout() }</dt>
+  <dd>Отключить автоматическое получение исходников</dd>
+</dl>
+</section>
+
+<section>
+<h2>Частые шаги</h2>
+<dl>
+  <dt>sh 'команда' / bat 'команда'</dt>
+  <dd>Оболочка Unix / командная строка Windows</dd>
+  <dt>checkout scm</dt>
+  <dd>Получить код той ветки, для которой запущена сборка</dd>
+  <dt>echo "текст"</dt>
+  <dd>Сообщение в журнал сборки</dd>
+  <dt>dir('subproject') { ... }</dt>
+  <dd>Выполнить шаги в подкаталоге</dd>
+  <dt>withEnv(['TZ=UTC']) { ... }</dt>
+  <dd>Переменные окружения для блока</dd>
+  <dt>retry(3) { sh './flaky.sh' }</dt>
+  <dd>Повторить при ошибке</dd>
+  <dt>timeout(time: 5, unit: 'MINUTES') { ... }</dt>
+  <dd>Ограничение времени блока</dd>
+  <dt>stash / unstash</dt>
+  <dd>Передать файлы между этапами на разных агентах</dd>
+</dl>
+</section>
+
+<section>
+<h2>Параметры и переменные</h2>
+<pre>parameters {
+    string(name: 'VERSION', defaultValue: '1.0.0')
+    booleanParam(name: 'DEPLOY', defaultValue: false)
+    choice(name: 'ENV', choices: ['dev', 'stage', 'prod'])
+}</pre>
+<dl>
+  <dt>params.VERSION</dt>
+  <dd>Значение параметра внутри конвейера</dd>
+  <dt>env.BUILD_NUMBER, env.BRANCH_NAME</dt>
+  <dd>Номер сборки и ветка</dd>
+  <dt>env.WORKSPACE, env.JOB_NAME</dt>
+  <dd>Каталог сборки и имя задания</dd>
+  <dt>environment { APP = 'demo' }</dt>
+  <dd>Свои переменные для всего конвейера или отдельного этапа</dd>
+  <dt>currentBuild.result / displayName</dt>
+  <dd>Результат и подпись сборки, доступны для изменения</dd>
+</dl>
+</section>
+
+<section>
+<h2>Учётные данные</h2>
+<pre>environment {
+    TOKEN = credentials('api-token')
+}
+
+steps {
+    withCredentials([usernamePassword(
+        credentialsId: 'registry',
+        usernameVariable: 'USER',
+        passwordVariable: 'PASS')]) {
+        sh 'echo $PASS | docker login -u $USER --password-stdin'
+    }
+}</pre>
+<p class="warn"><b>Осторожно:</b> секреты маскируются в журнале, но их легко раскрыть неаккуратной командой вроде <code>set -x</code> или выводом переменных. Не передавайте их аргументами командной строки.</p>
+</section>
+
+<section>
+<h2>Условия и ветвление</h2>
+<pre>stage('Выкладка') {
+    when {
+        branch 'master'
+        expression { params.DEPLOY }
+    }
+    steps { sh './deploy.sh' }
+}</pre>
+<dl>
+  <dt>when { not { branch 'master' } }</dt>
+  <dd>Отрицание; есть также anyOf и allOf</dd>
+  <dt>when { changeset "src/**" }</dt>
+  <dd>Только если менялись указанные файлы</dd>
+  <dt>input message: 'Выкладывать?'</dt>
+  <dd>Пауза с подтверждением от человека</dd>
+  <dt>parallel { stage('A') {...} stage('B') {...} }</dt>
+  <dd>Параллельные этапы</dd>
+  <dt>catchError(buildResult: 'UNSTABLE') { ... }</dt>
+  <dd>Не ронять сборку, но пометить её нестабильной</dd>
+</dl>
+</section>
+
+<section>
+<h2>Результаты сборки</h2>
+<dl>
+  <dt>junit 'reports/**/*.xml'</dt>
+  <dd>Разбор отчётов тестов: появляется вкладка с результатами</dd>
+  <dt>archiveArtifacts artifacts: 'build/*.tar.gz', fingerprint: true</dt>
+  <dd>Сохранить сборочные файлы</dd>
+  <dt>publishHTML(...)</dt>
+  <dd>Опубликовать HTML-отчёт, например покрытие</dd>
+  <dt>post { success / failure / unstable / always / cleanup }</dt>
+  <dd>Действия по итогу: уведомления, уборка</dd>
+  <dt>cleanWs()</dt>
+  <dd>Очистить рабочий каталог после сборки</dd>
+</dl>
+</section>
+
+<section>
+<h2>Организация заданий</h2>
+<ul class="gloss">
+  <li><b>Multibranch Pipeline</b> — сам находит ветки и pull request'ы с Jenkinsfile и создаёт для них задания.</li>
+  <li><b>Shared Library</b> — общий код конвейеров: подключается через <code>@Library('имя') _</code>.</li>
+  <li><b>Триггеры</b>: <code>triggers { cron('H 2 * * *') }</code>, <code>pollSCM</code> или веб-хук из системы контроля версий.</li>
+  <li><b>H в расписании</b> — «любая минута часа»: Jenkins разносит задания во времени, снижая пики нагрузки.</li>
+</ul>
+</section>
+
+<section>
+<h2>Обслуживание сервера</h2>
+<dl>
+  <dt>/var/lib/jenkins или $JENKINS_HOME</dt>
+  <dd>Все настройки, задания и ключи; резервная копия — это копия каталога</dd>
+  <dt>systemctl restart jenkins</dt>
+  <dd>Перезапуск службы</dd>
+  <dt>/restart, /safeRestart, /exit</dt>
+  <dd>Адреса управления через веб-интерфейс: немедленно, после завершения сборок, остановка</dd>
+  <dt>/manage/script</dt>
+  <dd>Консоль Groovy для служебных запросов к серверу</dd>
+  <dt>java -jar jenkins-cli.jar -s URL команда</dt>
+  <dd>Управление из командной строки: build, list-jobs, safe-restart</dd>
+  <dt>Manage Jenkins → Nodes</dt>
+  <dd>Агенты, метки и число исполнителей</dd>
+</dl>
+</section>
+
+<section>
+<h2>Когда сборка падает</h2>
+<ul class="gloss">
+  <li>Читайте журнал снизу вверх: первая настоящая ошибка часто выше последних строк.</li>
+  <li>Ошибка есть только на сервере — сравните версии инструментов на агенте и у себя, а также переменные окружения.</li>
+  <li>Кончилось место — <code>df -h</code> на агенте, затем очистка старых сборок через <code>buildDiscarder</code>.</li>
+  <li>Задание «висит» — обычно ждёт свободного исполнителя или подтверждения <code>input</code>.</li>
+  <li>Правки Jenkinsfile проверяйте в ветке через Multibranch, а синтаксис — линтером: <code>jenkins-cli declarative-linter</code>.</li>
+</ul>
+</section>
+
+</div>
+
+<footer>Оригинальная шпаргалка на русском языке для репозитория 2web/cheat-sheet-pdf.</footer>
+</body>
+</html>
