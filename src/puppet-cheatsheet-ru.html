@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Шпаргалка по Puppet</title>
+<link rel="stylesheet" href="cheatsheet.css">
+</head>
+<body>
+<h1>Шпаргалка по Puppet</h1>
+<p class="lead">Ресурсы и манифесты, классы и модули, переменные и факты, зависимости и уведомления, шаблоны и данные Hiera, команды агента и сервера, проверка и отладка.</p>
+
+<div class="cols">
+
+<section>
+<h2>Как это работает</h2>
+<ul class="gloss">
+  <li><b>Манифест</b> (<code>.pp</code>) описывает желаемое состояние системы, а не шаги по его достижению.</li>
+  <li><b>Ресурс</b> — единица описания: пакет, файл, служба, пользователь.</li>
+  <li><b>Каталог</b> — собранный для конкретного узла набор ресурсов; агент приводит систему к нему.</li>
+  <li><b>Факты</b> — сведения об узле, собранные Facter: система, адреса, память.</li>
+  <li><b>Идемпотентность</b>: повторный запуск ничего не меняет, если состояние уже верное.</li>
+</ul>
+</section>
+
+<section>
+<h2>Ресурс</h2>
+<pre>package { 'nginx':
+  ensure => installed,
+}
+
+file { '/etc/nginx/conf.d/site.conf':
+  ensure  => file,
+  owner   => 'root',
+  group   => 'root',
+  mode    => '0644',
+  content => template('web/site.conf.erb'),
+  require => Package['nginx'],
+  notify  => Service['nginx'],
+}
+
+service { 'nginx':
+  ensure => running,
+  enable => true,
+}</pre>
+<p class="note">Тип ресурса пишется строчными буквами (<code>package</code>), ссылка на него — с заглавной (<code>Package['nginx']</code>).</p>
+</section>
+
+<section>
+<h2>Частые типы ресурсов</h2>
+<dl>
+  <dt>package</dt>
+  <dd>ensure: installed, latest, absent или конкретная версия</dd>
+  <dt>file</dt>
+  <dd>ensure: file, directory, link, absent; content, source, mode, owner</dd>
+  <dt>service</dt>
+  <dd>ensure: running или stopped; enable — автозапуск</dd>
+  <dt>user / group</dt>
+  <dd>Учётные записи: uid, groups, shell, home</dd>
+  <dt>exec</dt>
+  <dd>Команда; обязательно ограничьте <code>unless</code>, <code>onlyif</code> или <code>creates</code></dd>
+  <dt>cron</dt>
+  <dd>Задание по расписанию: command, hour, minute</dd>
+  <dt>host / mount</dt>
+  <dd>Записи в /etc/hosts; точки монтирования</dd>
+</dl>
+</section>
+
+<section>
+<h2>Порядок и уведомления</h2>
+<dl>
+  <dt>require =&gt; Package['nginx']</dt>
+  <dd>Выполнить после указанного ресурса</dd>
+  <dt>before =&gt; Service['nginx']</dt>
+  <dd>Выполнить до указанного</dd>
+  <dt>notify =&gt; Service['nginx']</dt>
+  <dd>При изменении уведомить ресурс — служба перезапустится</dd>
+  <dt>subscribe =&gt; File['/etc/app.conf']</dt>
+  <dd>Обратная сторона notify: следить за чужими изменениями</dd>
+  <dt>Package['nginx'] -&gt; File['/etc/site.conf'] ~&gt; Service['nginx']</dt>
+  <dd>Цепочка стрелками: порядок и уведомление</dd>
+</dl>
+</section>
+
+<section>
+<h2>Классы и модули</h2>
+<pre>class webserver (
+  Integer $port = 80,
+  String  $doc_root = '/var/www',
+) {
+  package { 'nginx': ensure => installed }
+
+  file { '/etc/nginx/conf.d/app.conf':
+    content => epp('webserver/app.conf.epp', {
+      'port' => $port,
+    }),
+    notify  => Service['nginx'],
+  }
+
+  service { 'nginx':
+    ensure => running,
+    enable => true,
+  }
+}
+
+include webserver
+
+class { 'webserver':
+  port =&gt; 8080,
+}</pre>
+<p class="note">Раскладка модуля: <code>manifests/</code>, <code>templates/</code>, <code>files/</code>, <code>data/</code>, <code>spec/</code>. Имя файла соответствует имени класса: <code>webserver::ssl</code> живёт в <code>manifests/ssl.pp</code>.</p>
+</section>
+
+<section>
+<h2>Переменные, факты, условия</h2>
+<dl>
+  <dt>$packages = ['curl', 'htop']</dt>
+  <dd>Массив; хеш — <code>{ 'ключ' =&gt; 'значение' }</code></dd>
+  <dt>$facts['os']['family']</dt>
+  <dd>Факты узла: семейство системы, версия, адреса</dd>
+  <dt>if $facts['os']['family'] == 'Debian' { ... }</dt>
+  <dd>Условие</dd>
+  <dt>case $facts['os']['name'] { 'Ubuntu': {...} default: {...} }</dt>
+  <dd>Ветвление по значению</dd>
+  <dt>$pkg = $facts['os']['family'] ? { 'Debian' =&gt; 'apache2', default =&gt; 'httpd' }</dt>
+  <dd>Выбор значения по условию</dd>
+  <dt>package { $packages: ensure =&gt; installed }</dt>
+  <dd>Один ресурс для каждого элемента массива</dd>
+</dl>
+<p class="note">Переменные в Puppet неизменяемы: присвоить значение второй раз в той же области нельзя.</p>
+</section>
+
+<section>
+<h2>Шаблоны</h2>
+<dl>
+  <dt>epp('модуль/файл.epp', { 'port' =&gt; $port })</dt>
+  <dd>Шаблон на языке Puppet с явными параметрами — предпочтительный вариант</dd>
+  <dt>template('модуль/файл.erb')</dt>
+  <dd>Шаблон ERB: переменные доступны как <code>&lt;%= @port %&gt;</code></dd>
+  <dt>file { ...: source =&gt; 'puppet:///modules/web/app.conf' }</dt>
+  <dd>Готовый файл из каталога <code>files/</code> модуля</dd>
+</dl>
+</section>
+
+<section>
+<h2>Данные: Hiera</h2>
+<pre># hiera.yaml
+version: 5
+hierarchy:
+  - name: "Узел"
+    path: "nodes/%{trusted.certname}.yaml"
+  - name: "Семейство ОС"
+    path: "os/%{facts.os.family}.yaml"
+  - name: "Общее"
+    path: "common.yaml"</pre>
+<dl>
+  <dt>lookup('webserver::port')</dt>
+  <dd>Получить значение из данных</dd>
+  <dt>Автоматический поиск параметров</dt>
+  <dd>Параметр класса <code>webserver::port</code> подхватывается из Hiera без вызова lookup</dd>
+</dl>
+<p class="note">Разделяйте код и данные: логика — в модулях, значения для сред и узлов — в Hiera.</p>
+</section>
+
+<section>
+<h2>Команды</h2>
+<dl>
+  <dt>puppet apply manifest.pp</dt>
+  <dd>Применить манифест локально, без сервера</dd>
+  <dt>puppet apply --noop manifest.pp</dt>
+  <dd>Показать, что изменилось бы, ничего не делая</dd>
+  <dt>puppet agent -t</dt>
+  <dd>Разовый запуск агента с подробным выводом</dd>
+  <dt>puppet agent -t --noop</dt>
+  <dd>Пробный прогон против сервера</dd>
+  <dt>puppet parser validate файл.pp</dt>
+  <dd>Проверка синтаксиса</dd>
+  <dt>puppet-lint манифест.pp</dt>
+  <dd>Проверка стиля</dd>
+  <dt>facter -p os</dt>
+  <dd>Посмотреть факты узла</dd>
+  <dt>puppet resource service nginx</dt>
+  <dd>Текущее состояние ресурса в виде манифеста</dd>
+  <dt>puppet module install автор-модуль</dt>
+  <dd>Установить модуль из Forge</dd>
+</dl>
+</section>
+
+<section>
+<h2>Сервер и узлы</h2>
+<dl>
+  <dt>puppetserver ca list --all</dt>
+  <dd>Запросы на сертификаты и выданные сертификаты</dd>
+  <dt>puppetserver ca sign --certname узел</dt>
+  <dd>Подписать сертификат узла</dd>
+  <dt>puppetserver ca clean --certname узел</dt>
+  <dd>Отозвать: нужно при пересоздании машины с тем же именем</dd>
+  <dt>/etc/puppetlabs/code/environments/production</dt>
+  <dd>Каталог среды: manifests, modules, data</dd>
+  <dt>site.pp</dt>
+  <dd>Точка входа: сопоставление узлов и классов</dd>
+</dl>
+</section>
+
+<section>
+<h2>Отладка и осторожность</h2>
+<ul class="gloss">
+  <li>Начинайте с <code>--noop</code>: видно намерения без изменений на узле.</li>
+  <li><code>notice()</code> и <code>--debug</code> помогают понять, какие значения подставились.</li>
+  <li>Дублирование ресурса — частая ошибка: один файл не может описываться дважды; выносите его в класс.</li>
+  <li><code>exec</code> без ограничивающего условия выполняется каждый раз и ломает идемпотентность.</li>
+  <li>Тесты модулей — rspec-puppet, проверка на реальной системе — Litmus или запуск в контейнере.</li>
+</ul>
+</section>
+
+</div>
+
+<footer>Оригинальная шпаргалка на русском языке для репозитория 2web/cheat-sheet-pdf.</footer>
+</body>
+</html>
