@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Шпаргалка по Ajax</title>
+<link rel="stylesheet" href="cheatsheet.css">
+</head>
+<body>
+<h1>Шпаргалка по Ajax</h1>
+<p class="lead">Асинхронные запросы из браузера: fetch и async/await, отправка данных и файлов, отмена и таймауты, обработка ошибок, CORS и куки, устаревший XMLHttpRequest, а также приёмы для живых интерфейсов.</p>
+
+<div class="cols">
+
+<section>
+<h2>Что это такое</h2>
+<p class="note">Ajax — это обмен данными с сервером без перезагрузки страницы. Исторически название расшифровывалось как «асинхронный JavaScript и XML», но сегодня обмен почти всегда идёт в JSON, а вместо <code>XMLHttpRequest</code> применяют <code>fetch</code>.</p>
+</section>
+
+<section>
+<h2>Простой запрос</h2>
+<pre>const res = await fetch('/api/users');
+if (!res.ok) {
+  throw new Error(`HTTP ${res.status}`);
+}
+const users = await res.json();</pre>
+<p class="warn"><b>Важно:</b> <code>fetch</code> не считает ошибкой ответы 404 и 500 — промис отклоняется только при сетевом сбое. Всегда проверяйте <code>res.ok</code>.</p>
+</section>
+
+<section>
+<h2>Отправка данных</h2>
+<pre>const res = await fetch('/api/users', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ name: 'Аня' }),
+});
+
+// Форма и файлы: заголовок не ставим,
+// браузер подставит его сам вместе с границей
+const form = new FormData(formElement);
+form.append('avatar', fileInput.files[0]);
+await fetch('/api/upload', { method: 'POST', body: form });</pre>
+<dl>
+  <dt>URLSearchParams</dt>
+  <dd>Данные формы в классическом виде <code>a=1&amp;b=2</code></dd>
+  <dt>new URL('/api/users', location.origin)</dt>
+  <dd>Сборка адреса; <code>url.searchParams.set('page', 2)</code> добавит параметры</dd>
+</dl>
+</section>
+
+<section>
+<h2>Чтение ответа</h2>
+<dl>
+  <dt>res.json()</dt>
+  <dd>Разбор JSON; бросает исключение, если тело пустое или это HTML</dd>
+  <dt>res.text() / res.blob()</dt>
+  <dd>Текст; двоичные данные для файлов и картинок</dd>
+  <dt>res.status, res.ok, res.redirected</dt>
+  <dd>Код ответа, признак успеха, был ли переход</dd>
+  <dt>res.headers.get('content-type')</dt>
+  <dd>Заголовки ответа</dd>
+  <dt>res.body</dt>
+  <dd>Поток: позволяет читать длинный ответ по частям</dd>
+</dl>
+</section>
+
+<section>
+<h2>Ошибки и повторы</h2>
+<pre>async function request(url, options = {}, retries = 2) {
+  try {
+    const res = await fetch(url, options);
+    if (res.status &gt;= 500 &amp;&amp; retries &gt; 0) {
+      await new Promise(r =&gt; setTimeout(r, 500));
+      return request(url, options, retries - 1);
+    }
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`);
+    }
+    return await res.json();
+  } catch (err) {
+    console.error('запрос не удался', err);
+    throw err;
+  }
+}</pre>
+<p class="note">Повторять имеет смысл только безопасные запросы (GET) и ошибки сервера. Повтор POST без ключа идемпотентности может создать дубликат.</p>
+</section>
+
+<section>
+<h2>Отмена и таймаут</h2>
+<pre>const controller = new AbortController();
+const timer = setTimeout(() =&gt; controller.abort(), 5000);
+
+try {
+  const res = await fetch(url, { signal: controller.signal });
+  ...
+} catch (err) {
+  if (err.name === 'AbortError') {
+    // запрос отменён: таймаут или новый ввод пользователя
+  }
+} finally {
+  clearTimeout(timer);
+}
+
+// Короткая запись таймаута
+fetch(url, { signal: AbortSignal.timeout(5000) });</pre>
+<p class="note">Отмена обязательна для поиска по мере ввода: иначе ответ на старый запрос может прийти позже нового и перезаписать результат.</p>
+</section>
+
+<section>
+<h2>Параллельные запросы</h2>
+<dl>
+  <dt>Promise.all([a, b])</dt>
+  <dd>Ждать все; любая ошибка отклоняет результат целиком</dd>
+  <dt>Promise.allSettled([a, b])</dt>
+  <dd>Ждать все и получить статус каждого — удобно для независимых блоков страницы</dd>
+  <dt>Promise.race([a, b])</dt>
+  <dd>Первый завершившийся</dd>
+  <dt>Promise.any([a, b])</dt>
+  <dd>Первый успешный</dd>
+</dl>
+</section>
+
+<section>
+<h2>CORS и куки</h2>
+<dl>
+  <dt>Одинаковое происхождение</dt>
+  <dd>Совпадение протокола, домена и порта; иначе запрос считается межсайтовым</dd>
+  <dt>Access-Control-Allow-Origin</dt>
+  <dd>Заголовок сервера, разрешающий обращение с другого адреса</dd>
+  <dt>Предварительный запрос OPTIONS</dt>
+  <dd>Браузер шлёт его перед «непростыми» запросами: свои заголовки, методы PUT и DELETE</dd>
+  <dt>credentials: 'include'</dt>
+  <dd>Отправлять куки на другой домен; сервер должен разрешить учётные данные</dd>
+  <dt>SameSite</dt>
+  <dd>Атрибут куки: Lax по умолчанию, для межсайтовых нужен None и Secure</dd>
+</dl>
+<p class="warn">CORS ограничивает браузер, а не сервер: ошибка возникает на стороне клиента, а чинится настройкой заголовков на сервере.</p>
+</section>
+
+<section>
+<h2>Старый XMLHttpRequest</h2>
+<pre>const xhr = new XMLHttpRequest();
+xhr.open('GET', '/api/users');
+xhr.responseType = 'json';
+xhr.onload = () =&gt; {
+  if (xhr.status &lt; 400) console.log(xhr.response);
+};
+xhr.onerror = () =&gt; console.error('сетевая ошибка');
+xhr.upload.onprogress = e =&gt; {
+  console.log(Math.round(e.loaded / e.total * 100) + '%');
+};
+xhr.send();</pre>
+<p class="note">Единственная заметная причина использовать его сегодня — ход отправки файла: у <code>fetch</code> нет простого события прогресса загрузки.</p>
+</section>
+
+<section>
+<h2>Живые данные без опроса</h2>
+<dl>
+  <dt>EventSource (SSE)</dt>
+  <dd>Односторонний поток событий от сервера; сам восстанавливает соединение</dd>
+  <dt>WebSocket</dt>
+  <dd>Двусторонний обмен сообщениями в реальном времени</dd>
+  <dt>Периодический опрос</dt>
+  <dd>Простой вариант; не забывайте останавливать таймер при уходе со страницы</dd>
+  <dt>navigator.sendBeacon(url, data)</dt>
+  <dd>Отправка небольших данных при закрытии вкладки</dd>
+</dl>
+</section>
+
+<section>
+<h2>Приёмы для интерфейса</h2>
+<ul class="gloss">
+  <li>Показывайте состояние загрузки и блокируйте кнопку — иначе пользователь нажмёт дважды.</li>
+  <li>Задержка перед отправкой при вводе (300–500 мс) экономит запросы при поиске.</li>
+  <li>Сообщения об ошибках пишите человеку, а подробности — в консоль и журнал.</li>
+  <li>Не выводите ответ сервера в разметку через <code>innerHTML</code> без экранирования.</li>
+  <li>Токены доступа храните так, как позволяет ваша модель безопасности; куки с флагом HttpOnly недоступны из JavaScript и потому надёжнее localStorage.</li>
+  <li>Вкладка «Сеть» в средствах разработчика показывает и предварительные запросы OPTIONS — начинайте отладку CORS с неё.</li>
+</ul>
+</section>
+
+</div>
+
+<footer>Оригинальная шпаргалка на русском языке для репозитория 2web/cheat-sheet-pdf.</footer>
+</body>
+</html>

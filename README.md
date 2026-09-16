@@ -155,14 +155,17 @@
 
 ### Ajax :arrows_counterclockwise:
 * [Ajax](pdf/ajax.pdf): AJAX = Asynchronous JavaScript And XML (асинхронный JavaScript и XML).
+* [Шпаргалка по Ajax на русском](pdf/ajax-cheatsheet-ru.pdf): оригинальная русскоязычная шпаргалка — fetch и async/await, отправка данных и файлов, отмена и таймауты, ошибки, CORS и куки, живые данные.
 
 ### Amazon Web Services (AWS) :cloud_with_lightning_and_rain:
 * [AWS: основы](pdf/AWS-Basic-Cheat-Sheet.pdf)
 * [Сервисы AWS](pdf/aws-services.pdf)
 * [Информация о стоимости AWS](pdf/aws-cost.pdf)
+* [Шпаргалка по AWS на русском](pdf/aws-cheatsheet-ru.pdf): оригинальная русскоязычная шпаргалка — устройство аккаунта и регионов, AWS CLI, IAM, вычисления, хранилища и базы, сеть, очереди, наблюдение и расходы.
 
 ### Инфраструктура как код (IaC) :building_construction:
 * [Terraform](pdf/terraform-cheatsheet1-.pdf): Terraform — инструмент с открытым исходным кодом для управления облачными сервисами по принципу «инфраструктура как код».
+* [Шпаргалка по Terraform на русском](pdf/terraform-cheatsheet-ru.pdf): оригинальная русскоязычная шпаргалка — команды, конфигурация, переменные и выражения, модули, состояние и его хранение, отладка, работа в команде.
 
 ### Проектирование систем :gear:
 * [System Design Blueprint](pdf/System_Design_Blueprint.pdf): Проектирование систем — это процесс создания архитектуры для различных компонентов, интерфейсов и модулей системы, а также подготовки данных, которые помогают реализовать эти элементы.
