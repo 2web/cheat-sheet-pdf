@@ -1,20 +1,23 @@
 ---
-name: Feature request
-about: Suggest an idea for this project
+name: Предложение / Feature request
+about: Предложить идею или новую шпаргалку для этой коллекции
 title: ''
 labels: ''
 assignees: ''
 
 ---
 
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+**Что предлагаете?**
+Коротко опишите идею: новая шпаргалка, дополнение к существующей, изменение на сайте.
 
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
+**Какую задачу это решает?**
+Что сейчас неудобно или чего не хватает.
 
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
+**Как это должно выглядеть**
+Разделы, темы, примеры команд — всё, что поможет сделать материал полезным.
 
-**Additional context**
-Add any other context or screenshots about the feature request here.
+**Альтернативы**
+Что уже пробовали или какие ещё варианты рассматривали.
+
+**Дополнительно**
+Ссылки на источники, скриншоты, любой другой контекст.
