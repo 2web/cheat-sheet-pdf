@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Шпаргалка по Wireshark</title>
+<link rel="stylesheet" href="cheatsheet.css">
+</head>
+<body>
+<h1>Шпаргалка по Wireshark</h1>
+<p class="lead">Анализ сетевого трафика: захват и его ограничение, фильтры отображения, разбор TCP и HTTP, статистика, работа из командной строки через tshark и dumpcap, типовые находки.</p>
+
+<div class="cols">
+
+<section>
+<h2>Прежде всего</h2>
+<p class="warn">Перехватывайте трафик только в своей сети или там, где это разрешено. Дамп содержит данные пользователей — обращайтесь с файлом захвата как с чувствительными сведениями и удаляйте, когда он больше не нужен.</p>
+</section>
+
+<section>
+<h2>Захват</h2>
+<dl>
+  <dt>Выбор интерфейса</dt>
+  <dd>В главном окне: подходящий обычно тот, где виден трафик на графике</dd>
+  <dt>Ctrl+E</dt>
+  <dd>Начать и остановить захват</dd>
+  <dt>Смешанный режим</dt>
+  <dd>Принимать и чужие кадры; на коммутируемой сети всё равно виден в основном свой трафик</dd>
+  <dt>Кольцевой буфер</dt>
+  <dd>Автоматическая смена файлов по размеру или времени — для долгого наблюдения</dd>
+  <dt>Фильтр захвата</dt>
+  <dd>Синтаксис BPF, применяется до записи: уменьшает объём, но отброшенное не вернуть</dd>
+  <dt>Фильтр отображения</dt>
+  <dd>Синтаксис Wireshark, применяется к уже записанному — основной рабочий инструмент</dd>
+</dl>
+</section>
+
+<section>
+<h2>Фильтры захвата (BPF)</h2>
+<dl>
+  <dt>host 10.0.0.5</dt>
+  <dd>Весь трафик узла</dd>
+  <dt>net 10.0.0.0/24</dt>
+  <dd>Подсеть</dd>
+  <dt>port 443 / portrange 8000-8100</dt>
+  <dd>Порт и диапазон</dd>
+  <dt>tcp port 80 and host example.com</dt>
+  <dd>Объединение условий</dd>
+  <dt>not port 22</dt>
+  <dd>Исключить собственный сеанс SSH — иначе он заполнит дамп</dd>
+  <dt>icmp or arp</dt>
+  <dd>Служебные протоколы</dd>
+</dl>
+</section>
+
+<section>
+<h2>Фильтры отображения</h2>
+<dl>
+  <dt>ip.addr == 10.0.0.5</dt>
+  <dd>Узел как источник или получатель</dd>
+  <dt>ip.src == 10.0.0.5 &amp;&amp; ip.dst == 8.8.8.8</dt>
+  <dd>Направление</dd>
+  <dt>tcp.port == 443 / udp.port == 53</dt>
+  <dd>Порт</dd>
+  <dt>http.request.method == "POST"</dt>
+  <dd>Только запросы POST</dd>
+  <dt>http.response.code &gt;= 400</dt>
+  <dd>Ошибочные ответы</dd>
+  <dt>dns.qry.name contains "example"</dt>
+  <dd>Запросы DNS по подстроке</dd>
+  <dt>tcp.flags.syn == 1 &amp;&amp; tcp.flags.ack == 0</dt>
+  <dd>Попытки установить соединение</dd>
+  <dt>tcp.analysis.retransmission</dt>
+  <dd>Повторные передачи — признак потерь</dd>
+  <dt>tcp.analysis.flags</dt>
+  <dd>Все замечания анализатора TCP разом</dd>
+  <dt>frame contains "password"</dt>
+  <dd>Поиск подстроки в содержимом кадра</dd>
+  <dt>tls.handshake.type == 1</dt>
+  <dd>Начало рукопожатия TLS: видно имя запрошенного сервера</dd>
+</dl>
+</section>
+
+<section>
+<h2>Работа с потоком</h2>
+<dl>
+  <dt>Правая кнопка → Follow → TCP Stream</dt>
+  <dd>Собрать переписку соединения в читаемый вид</dd>
+  <dt>Follow → HTTP Stream</dt>
+  <dd>Запрос и ответ целиком</dd>
+  <dt>Statistics → Conversations</dt>
+  <dd>Кто с кем общается и сколько данных передано</dd>
+  <dt>Statistics → Protocol Hierarchy</dt>
+  <dd>Из чего состоит трафик по протоколам</dd>
+  <dt>Statistics → IO Graph</dt>
+  <dd>График нагрузки во времени: видны всплески и провалы</dd>
+  <dt>Statistics → Capture File Properties</dt>
+  <dd>Длительность, число пакетов, средняя скорость</dd>
+  <dt>File → Export Objects → HTTP</dt>
+  <dd>Извлечь переданные файлы</dd>
+</dl>
+</section>
+
+<section>
+<h2>Удобства интерфейса</h2>
+<ul class="gloss">
+  <li><b>Ctrl+F</b> — поиск по содержимому пакетов; ищите по строке, шестнадцатеричному коду или фильтру.</li>
+  <li><b>Ctrl+M</b> — пометить пакет, чтобы вернуться к нему позже.</li>
+  <li><b>Правая кнопка → Apply as Filter</b> — быстро построить фильтр из выбранного поля.</li>
+  <li><b>View → Time Display Format → Seconds Since Previous Displayed Packet</b> — удобно измерять паузы.</li>
+  <li><b>Analyze → Expert Information</b> — сводка замечаний: потери, дубликаты, ошибки контрольных сумм.</li>
+  <li><b>Цветовые правила</b> настраиваются: свои цвета для интересных условий экономят время.</li>
+</ul>
+</section>
+
+<section>
+<h2>Командная строка</h2>
+<dl>
+  <dt>tshark -D</dt>
+  <dd>Список интерфейсов</dd>
+  <dt>tshark -i eth0 -f "port 443" -w cap.pcapng</dt>
+  <dd>Захват с фильтром в файл</dd>
+  <dt>tshark -r cap.pcapng -Y "http.response.code &gt;= 500"</dt>
+  <dd>Чтение файла с фильтром отображения</dd>
+  <dt>tshark -r cap.pcapng -T fields -e ip.src -e ip.dst -e tcp.port</dt>
+  <dd>Выбрать поля — удобно для дальнейшей обработки</dd>
+  <dt>tshark -r cap.pcapng -q -z conv,tcp</dt>
+  <dd>Статистика соединений без вывода пакетов</dd>
+  <dt>dumpcap -i eth0 -b filesize:100000 -b files:10 -w cap.pcapng</dt>
+  <dd>Долгий захват с кольцевым буфером: легче Wireshark и надёжнее</dd>
+  <dt>editcap -A "2026-01-01 10:00:00" in.pcapng out.pcapng</dt>
+  <dd>Вырезать нужный отрезок времени</dd>
+  <dt>mergecap -w all.pcapng a.pcapng b.pcapng</dt>
+  <dd>Объединить файлы захвата</dd>
+</dl>
+</section>
+
+<section>
+<h2>Захват на сервере</h2>
+<pre># Записать на удалённой машине, смотреть локально
+ssh user@host "sudo tcpdump -i any -U -s0 -w - 'port 80'" | wireshark -k -i -
+
+# Ограниченный по времени и объёму захват
+sudo timeout 60 tcpdump -i any -w /tmp/cap.pcap -C 50 -W 4 'host 10.0.0.5'</pre>
+<p class="note">На сервере обычно ставят tcpdump, а разбирают дамп уже в Wireshark на своей машине — графический интерфейс на рабочем узле не нужен.</p>
+</section>
+
+<section>
+<h2>Что искать</h2>
+<ul class="gloss">
+  <li><b>Повторные передачи и дубликаты ACK</b> — потери в сети или перегрузка.</li>
+  <li><b>Нулевое окно (TCP ZeroWindow)</b> — получатель не успевает обрабатывать данные.</li>
+  <li><b>RST сразу после SYN</b> — служба не слушает порт или соединение сбрасывает межсетевой экран.</li>
+  <li><b>SYN без ответа</b> — пакеты не доходят: маршрут или фильтрация.</li>
+  <li><b>Долгая пауза перед ответом</b> — время тратит приложение, а не сеть.</li>
+  <li><b>Медленные запросы DNS</b> — частая причина «тормозов», которые списывают на приложение.</li>
+  <li><b>Ошибки TLS</b> — несовпадение версий, имени в сертификате или отсутствие доверия к центру.</li>
+</ul>
+</section>
+
+</div>
+
+<footer>Оригинальная шпаргалка на русском языке для репозитория 2web/cheat-sheet-pdf.</footer>
+</body>
+</html>

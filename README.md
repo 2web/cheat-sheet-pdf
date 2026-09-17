@@ -53,6 +53,7 @@
 * [Docker от JRebel](pdf/docker_by_jrebel.pdf)
 * [Безопасность Docker](pdf/docker-security.pdf)
 * [Шпаргалка по Docker на русском](pdf/docker-cheatsheet-ru.pdf): оригинальная русскоязычная шпаргалка — контейнеры, образы, Dockerfile, тома, сети, Compose и уборка.
+* [Шпаргалка по безопасности Docker на русском](pdf/docker-security-cheatsheet-ru.pdf): оригинальная русскоязычная шпаргалка — образы и слои, запуск без root, ограничение возможностей и ресурсов, секреты, проверка образов, защита демона и узла.
 
 ### Ansible :hammer_and_wrench:
 * [Ansible](pdf/ansible.pdf): Ansible — самый простой способ автоматизировать приложения и IT-инфраструктуру.
@@ -109,11 +110,15 @@
 * [Network-tools](pdf/linux-networing-tools.pdf): Шпаргалка по сетевым инструментам включает ping, curl, wget, ssh и другие.
 * [Cron](pdf/cron.pdf): Cron — планировщик задач по времени в Unix-подобных операционных системах.
 * [Rsync](pdf/rsync.pdf): Rsync — быстрый и универсальный инструмент копирования файлов для локальной и удалённой передачи.
+* [Шпаргалка по cron и rsync на русском](pdf/cron-rsync-cheatsheet-ru.pdf): оригинальная русскоязычная шпаргалка — формат расписания, подводные камни cron, таймеры systemd, ключи и отбор файлов в rsync, инкрементные копии.
 * [cURL](pdf/curl.pdf)
+* [Шпаргалка по cURL на русском](pdf/curl-cheatsheet-ru.pdf): оригинальная русскоязычная шпаргалка — методы и данные, заголовки и доступ, файлы и куки, тайм-ауты и повторы, TLS и прокси, замеры времени.
 * [SSH](pdf/ssh.pdf)
+* [Шпаргалка по SSH на русском](pdf/ssh-cheatsheet-ru.pdf): оригинальная русскоязычная шпаргалка — ключи и права, файл настроек, промежуточный узел, проброс портов, копирование файлов, настройка сервера, разбор проблем.
 * [NC (Netcat)](pdf/netcat.pdf)
 * [Nmap](pdf/nmap.pdf): Nmap — мощный инструмент сканирования сети.
   * [Шпаргалка по Nmap](pdf/Nmap-Cheat-Sheet.pdf) от Comparitech.
+* [Шпаргалка по Nmap на русском](pdf/nmap-cheatsheet-ru.pdf): оригинальная русскоязычная шпаргалка — выбор целей, обнаружение узлов, виды сканирования, определение служб, скрипты NSE, форматы вывода, состояния портов.
 * [OpenSSL](pdf/openssl.pdf)
 * [Ethtool](pdf/ethtool.pdf)
 * [ngrep](pdf/ngrep.pdf)
@@ -122,10 +127,12 @@
 * [find](pdf/find.pdf)
 * [awk](pdf/awk.pdf)
 * [sed](pdf/sed.pdf)
+* [Шпаргалка по awk и sed на русском](pdf/awk-sed-cheatsheet-ru.pdf): оригинальная русскоязычная шпаргалка — замены и выбор строк в sed, поля и подсчёты в awk, блоки BEGIN и END, готовые рецепты.
 * [tar](pdf/tar.pdf)
 * [ps](pdf/ps.pdf)
 * [top](pdf/top.pdf)
 * [Wireshark](pdf/wireshark.pdf): Wireshark — бесплатный анализатор сетевых пакетов с открытым исходным кодом.
+* [Шпаргалка по Wireshark на русском](pdf/wireshark-cheatsheet-ru.pdf): оригинальная русскоязычная шпаргалка — захват и фильтры, разбор потоков, статистика, tshark и dumpcap, типовые находки.
 * [Файловые системы Linux](pdf/LinuxFileSystems.gif): Раньше файловая система Linux напоминала неупорядоченный город, где каждый строил дом там, где ему вздумается.
 * [Шпаргалка по Linux на русском](pdf/linux-cheatsheet-ru.pdf): оригинальная русскоязычная шпаргалка — файлы и права, поиск, текстовые утилиты, процессы и systemd, диск и память, сеть, SSH и rsync, архивы, cron.
 
