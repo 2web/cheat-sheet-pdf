@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Шпаргалка по OpenSSL</title>
+<link rel="stylesheet" href="cheatsheet.css">
+</head>
+<body>
+<h1>Шпаргалка по OpenSSL</h1>
+<p class="lead">Ключи и сертификаты, запросы на подпись, проверка цепочки и срока действия, преобразование форматов, диагностика TLS-соединений, хеши и шифрование файлов.</p>
+
+<div class="cols">
+
+<section>
+<h2>Ключи</h2>
+<dl>
+  <dt>openssl genrsa -out key.pem 2048</dt>
+  <dd>Закрытый ключ RSA</dd>
+  <dt>openssl genpkey -algorithm ED25519 -out key.pem</dt>
+  <dd>Современный ключ на эллиптических кривых</dd>
+  <dt>openssl ecparam -genkey -name prime256v1 -out key.pem</dt>
+  <dd>Ключ ECDSA P-256</dd>
+  <dt>openssl rsa -in key.pem -pubout -out pub.pem</dt>
+  <dd>Извлечь открытый ключ</dd>
+  <dt>openssl rsa -in key.pem -noout -text</dt>
+  <dd>Посмотреть параметры ключа</dd>
+  <dt>openssl rsa -aes256 -in key.pem -out key-enc.pem</dt>
+  <dd>Зашифровать ключ паролем; обратно — без <code>-aes256</code></dd>
+</dl>
+<p class="warn">Закрытый ключ — секрет: права 600, не класть в репозиторий, не пересылать почтой. Утёкший ключ считается скомпрометированным — выпускайте новый и отзывайте сертификат.</p>
+</section>
+
+<section>
+<h2>Запрос и сертификат</h2>
+<dl>
+  <dt>openssl req -new -key key.pem -out req.csr</dt>
+  <dd>Запрос на подпись (CSR) к удостоверяющему центру</dd>
+  <dt>openssl req -new -newkey rsa:2048 -nodes -keyout key.pem -out req.csr</dt>
+  <dd>Сразу ключ без пароля и запрос</dd>
+  <dt>openssl req -x509 -newkey rsa:2048 -nodes -keyout key.pem -out cert.pem -days 365</dt>
+  <dd>Самоподписанный сертификат — для тестов и внутренних служб</dd>
+  <dt>-subj "/CN=example.com/O=Компания"</dt>
+  <dd>Данные без интерактивных вопросов</dd>
+  <dt>-addext "subjectAltName=DNS:example.com,DNS:www.example.com"</dt>
+  <dd>Альтернативные имена: без них современные браузеры сертификат не примут</dd>
+  <dt>openssl x509 -req -in req.csr -CA ca.pem -CAkey ca.key -CAcreateserial -out cert.pem -days 365</dt>
+  <dd>Подписать своим удостоверяющим центром</dd>
+</dl>
+</section>
+
+<section>
+<h2>Проверить и посмотреть</h2>
+<dl>
+  <dt>openssl x509 -in cert.pem -noout -text</dt>
+  <dd>Содержимое сертификата целиком</dd>
+  <dt>openssl x509 -in cert.pem -noout -subject -issuer -dates</dt>
+  <dd>Кому выдан, кем и на какой срок</dd>
+  <dt>openssl x509 -in cert.pem -noout -ext subjectAltName</dt>
+  <dd>Список имён в сертификате</dd>
+  <dt>openssl x509 -in cert.pem -noout -checkend 2592000</dt>
+  <dd>Истекает ли в ближайшие 30 дней — удобно для проверок в мониторинге</dd>
+  <dt>openssl req -in req.csr -noout -text</dt>
+  <dd>Проверить запрос перед отправкой</dd>
+  <dt>openssl verify -CAfile ca.pem cert.pem</dt>
+  <dd>Проверить цепочку доверия</dd>
+  <dt>openssl x509 -noout -modulus -in cert.pem | openssl md5</dt>
+  <dd>Сверить, что сертификат и ключ — пара (сравните с тем же для <code>rsa -modulus</code>)</dd>
+</dl>
+</section>
+
+<section>
+<h2>Диагностика соединения</h2>
+<dl>
+  <dt>openssl s_client -connect example.com:443</dt>
+  <dd>Подключиться и показать цепочку сертификатов</dd>
+  <dt>-servername example.com</dt>
+  <dd>Указать имя для SNI: без него сервер отдаст не тот сертификат</dd>
+  <dt>-showcerts</dt>
+  <dd>Вся цепочка, включая промежуточные</dd>
+  <dt>| openssl x509 -noout -dates</dt>
+  <dd>Только срок действия предъявленного сертификата</dd>
+  <dt>-tls1_2 / -tls1_3</dt>
+  <dd>Проверить поддержку конкретной версии протокола</dd>
+  <dt>-starttls smtp</dt>
+  <dd>Для почтовых и других протоколов с переходом на TLS</dd>
+  <dt>openssl s_server -accept 4433 -cert cert.pem -key key.pem</dt>
+  <dd>Поднять тестовый TLS-сервер</dd>
+</dl>
+</section>
+
+<section>
+<h2>Форматы и преобразования</h2>
+<dl>
+  <dt>PEM</dt>
+  <dd>Текстовый формат с заголовками BEGIN/END — самый распространённый</dd>
+  <dt>DER</dt>
+  <dd>Двоичный; <code>openssl x509 -in cert.der -inform der -out cert.pem</code></dd>
+  <dt>PKCS#12 (.pfx, .p12)</dt>
+  <dd>Ключ и сертификаты в одном файле под паролем</dd>
+  <dt>openssl pkcs12 -export -out bundle.p12 -inkey key.pem -in cert.pem -certfile chain.pem</dt>
+  <dd>Собрать связку</dd>
+  <dt>openssl pkcs12 -in bundle.p12 -nodes -out all.pem</dt>
+  <dd>Разобрать обратно</dd>
+  <dt>cat cert.pem chain.pem &gt; fullchain.pem</dt>
+  <dd>Полная цепочка для веб-сервера: сначала сертификат, затем промежуточные</dd>
+</dl>
+</section>
+
+<section>
+<h2>Хеши и случайные данные</h2>
+<dl>
+  <dt>openssl dgst -sha256 файл</dt>
+  <dd>Контрольная сумма</dd>
+  <dt>openssl dgst -sha256 -hmac "ключ" файл</dt>
+  <dd>HMAC с секретом</dd>
+  <dt>openssl rand -hex 32</dt>
+  <dd>Случайная строка — годится для маркеров и секретов</dd>
+  <dt>openssl rand -base64 24</dt>
+  <dd>То же в base64</dd>
+  <dt>openssl passwd -6 "пароль"</dt>
+  <dd>Хеш пароля в формате /etc/shadow</dd>
+  <dt>openssl base64 -in файл / -d</dt>
+  <dd>Кодирование и декодирование base64</dd>
+</dl>
+</section>
+
+<section>
+<h2>Подпись и шифрование файлов</h2>
+<pre># Подписать и проверить
+openssl dgst -sha256 -sign key.pem -out file.sig file
+openssl dgst -sha256 -verify pub.pem -signature file.sig file
+
+# Зашифровать файл паролем
+openssl enc -aes-256-cbc -pbkdf2 -salt -in file -out file.enc
+openssl enc -d -aes-256-cbc -pbkdf2 -in file.enc -out file
+
+# Зашифровать открытым ключом получателя (для небольших данных)
+openssl pkeyutl -encrypt -pubin -inkey pub.pem -in secret.txt -out secret.enc</pre>
+<p class="note">Для больших объёмов и обмена с людьми удобнее age или GnuPG: у них проще управление ключами и меньше шансов ошибиться с параметрами.</p>
+</section>
+
+<section>
+<h2>Частые задачи</h2>
+<ul class="gloss">
+  <li><b>Сертификат не подходит сайту</b> — сверьте <code>subjectAltName</code> с именем в адресной строке.</li>
+  <li><b>Браузер ругается на цепочку</b> — сервер отдаёт не все промежуточные: соберите <code>fullchain.pem</code>.</li>
+  <li><b>Ключ не подходит к сертификату</b> — сравните хеши modulus у ключа и сертификата.</li>
+  <li><b>Скоро истекает</b> — поставьте проверку <code>-checkend</code> в мониторинг и обновляйте заранее.</li>
+  <li><b>Самоподписанный на тесте</b> — добавьте свой CA в доверенные на клиенте, а не отключайте проверку.</li>
+</ul>
+</section>
+
+</div>
+
+<footer>Оригинальная шпаргалка на русском языке для репозитория 2web/cheat-sheet-pdf.</footer>
+</body>
+</html>

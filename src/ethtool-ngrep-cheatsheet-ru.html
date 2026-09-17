@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Шпаргалка по ethtool и ngrep</title>
+<link rel="stylesheet" href="cheatsheet.css">
+</head>
+<body>
+<h1>Шпаргалка по ethtool и ngrep</h1>
+<p class="lead">Две утилиты для разных уровней диагностики: ethtool показывает состояние сетевой карты и канала, ngrep ищет текст в проходящем трафике. Работайте только на своих узлах.</p>
+
+<div class="cols">
+
+<section>
+<h2>ethtool: состояние канала</h2>
+<dl>
+  <dt>ethtool eth0</dt>
+  <dd>Скорость, режим дуплекса, наличие несущей (<code>Link detected</code>)</dd>
+  <dt>ethtool -i eth0</dt>
+  <dd>Драйвер, версия прошивки, шина</dd>
+  <dt>ethtool -S eth0</dt>
+  <dd>Счётчики: ошибки, отброшенные пакеты, переполнения</dd>
+  <dt>ethtool -g eth0</dt>
+  <dd>Размеры кольцевых буферов приёма и передачи</dd>
+  <dt>ethtool -k eth0</dt>
+  <dd>Аппаратные разгрузки: контрольные суммы, сегментация</dd>
+  <dt>ethtool -c eth0</dt>
+  <dd>Параметры объединения прерываний</dd>
+  <dt>ethtool -l eth0</dt>
+  <dd>Число очередей</dd>
+  <dt>ethtool -p eth0 10</dt>
+  <dd>Помигать индикатором порта 10 секунд — найти нужный разъём в стойке</dd>
+</dl>
+</section>
+
+<section>
+<h2>ethtool: изменение настроек</h2>
+<dl>
+  <dt>ethtool -s eth0 speed 1000 duplex full autoneg off</dt>
+  <dd>Зафиксировать скорость и режим</dd>
+  <dt>ethtool -G eth0 rx 4096 tx 4096</dt>
+  <dd>Увеличить буферы при потерях на приёме</dd>
+  <dt>ethtool -K eth0 gro off tso off</dt>
+  <dd>Отключить разгрузки — иногда нужно при отладке или в виртуальных средах</dd>
+  <dt>ethtool -C eth0 rx-usecs 50</dt>
+  <dd>Настроить объединение прерываний: меньше нагрузка, выше задержка</dd>
+  <dt>ethtool -L eth0 combined 8</dt>
+  <dd>Число очередей под число ядер</dd>
+</dl>
+<p class="warn">Изменения через ethtool не переживают перезагрузку. Закрепляйте их в настройках сети дистрибутива или в юните systemd, иначе после ребута всё вернётся.</p>
+</section>
+
+<section>
+<h2>На что смотреть в счётчиках</h2>
+<ul class="gloss">
+  <li><b>rx_errors, rx_crc_errors</b> — испорченные кадры: кабель, разъём, оптика.</li>
+  <li><b>rx_dropped, rx_no_buffer</b> — не успели принять: маленькие буферы или перегруженный процессор.</li>
+  <li><b>tx_errors, collisions</b> — проблемы передачи; коллизии в современных сетях сигнализируют о несогласованном дуплексе.</li>
+  <li><b>Link detected: no</b> — физически нет связи: кабель, порт коммутатора, питание модуля.</li>
+  <li>Скорость 100 Мбит/с там, где ожидается гигабит, — почти всегда кабель или автосогласование.</li>
+  <li>Сравнивайте счётчики в динамике: <code>watch -n1 'ethtool -S eth0 | grep -i err'</code>.</li>
+</ul>
+</section>
+
+<section>
+<h2>Соседние инструменты</h2>
+<dl>
+  <dt>ip -s link show eth0</dt>
+  <dd>Статистика интерфейса без ethtool</dd>
+  <dt>ip a / ip r</dt>
+  <dd>Адреса и маршруты</dd>
+  <dt>mii-tool eth0</dt>
+  <dd>Старый вариант проверки канала</dd>
+  <dt>iperf3 -c host</dt>
+  <dd>Измерить реальную пропускную способность</dd>
+  <dt>mtr host</dt>
+  <dd>Потери и задержки по всему маршруту</dd>
+</dl>
+</section>
+
+<section>
+<h2>ngrep: поиск в трафике</h2>
+<dl>
+  <dt>ngrep -d any "GET" port 80</dt>
+  <dd>Пакеты со строкой на всех интерфейсах</dd>
+  <dt>ngrep -d eth0 -q "пароль"</dt>
+  <dd>Тихий режим: только совпадения</dd>
+  <dt>ngrep -W byline "HTTP" port 8080</dt>
+  <dd>Вывод с переносами строк — читаемо для текстовых протоколов</dd>
+  <dt>ngrep -i "user-agent" port 80</dt>
+  <dd>Без учёта регистра</dd>
+  <dt>ngrep -x "" port 5432</dt>
+  <dd>Шестнадцатеричный дамп для двоичных протоколов</dd>
+  <dt>ngrep -O dump.pcap "" port 80</dt>
+  <dd>Записать совпавшее в файл для разбора в Wireshark</dd>
+  <dt>ngrep -I dump.pcap "ошибка"</dt>
+  <dd>Искать в уже записанном файле</dd>
+  <dt>ngrep -t / -T</dt>
+  <dd>Метки времени: абсолютные и относительно предыдущего пакета</dd>
+</dl>
+</section>
+
+<section>
+<h2>Фильтры и примеры</h2>
+<pre># Запросы к конкретному хосту
+ngrep -d any -W byline "" "host 10.0.0.5 and port 80"
+
+# Запросы DNS по имени
+ngrep -d any -q "example" udp port 53
+
+# Тело POST-запросов к API
+ngrep -d any -W byline "POST /api" port 8080
+
+# Кто шлёт незашифрованные пароли в форме
+ngrep -d any -i "password=" port 80</pre>
+<p class="note">Синтаксис фильтра после шаблона — тот же BPF, что у tcpdump: <code>host</code>, <code>net</code>, <code>port</code>, <code>and</code>, <code>or</code>, <code>not</code>.</p>
+</section>
+
+<section>
+<h2>Ограничения ngrep</h2>
+<ul class="gloss">
+  <li>Видит только незашифрованный трафик: в HTTPS ничего полезного не найдёт.</li>
+  <li>Ищет по отдельным пакетам — строка, разорванная между пакетами, не совпадёт. Для сборки потока нужен Wireshark.</li>
+  <li>Требует прав root и заметно нагружает узел на большом трафике — сужайте фильтр.</li>
+  <li>Дамп содержит пользовательские данные: обращайтесь с ним как с чувствительной информацией.</li>
+  <li>Для серьёзного разбора привычнее tcpdump для записи и Wireshark для анализа.</li>
+</ul>
+</section>
+
+<section>
+<h2>Порядок разбора сетевой проблемы</h2>
+<ol class="gloss">
+  <li>Физика: <code>ethtool eth0</code> — есть ли канал и та ли скорость.</li>
+  <li>Ошибки на интерфейсе: <code>ethtool -S</code> и <code>ip -s link</code>.</li>
+  <li>Адреса и маршруты: <code>ip a</code>, <code>ip r</code>, доступность шлюза.</li>
+  <li>Имена: <code>dig</code> — не в DNS ли дело.</li>
+  <li>Порт и путь: <code>nc -zv</code>, <code>mtr</code>.</li>
+  <li>Содержимое: <code>ngrep</code> или <code>tcpdump</code> с последующим разбором в Wireshark.</li>
+</ol>
+</section>
+
+</div>
+
+<footer>Оригинальная шпаргалка на русском языке для репозитория 2web/cheat-sheet-pdf.</footer>
+</body>
+</html>
