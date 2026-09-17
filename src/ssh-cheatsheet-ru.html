@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Шпаргалка по SSH</title>
+<link rel="stylesheet" href="cheatsheet.css">
+</head>
+<body>
+<h1>Шпаргалка по SSH</h1>
+<p class="lead">Подключение и ключи, файл настроек клиента, проброс портов и переход через промежуточный узел, копирование файлов, агент и переадресация, настройка сервера, разбор проблем.</p>
+
+<div class="cols">
+
+<section>
+<h2>Подключение</h2>
+<dl>
+  <dt>ssh user@host</dt>
+  <dd>Обычное подключение на порт 22</dd>
+  <dt>ssh -p 2222 user@host</dt>
+  <dd>Другой порт</dd>
+  <dt>ssh -i ~/.ssh/id_work user@host</dt>
+  <dd>Конкретный закрытый ключ</dd>
+  <dt>ssh user@host "uptime; df -h"</dt>
+  <dd>Выполнить команду и выйти</dd>
+  <dt>ssh -t user@host "sudo journalctl -f"</dt>
+  <dd>Выделить терминал — нужно для интерактивных команд</dd>
+  <dt>ssh -v / -vvv</dt>
+  <dd>Подробный вывод: первый шаг при разборе отказов</dd>
+  <dt>ssh -o StrictHostKeyChecking=accept-new user@host</dt>
+  <dd>Принять ключ нового узла без вопроса</dd>
+</dl>
+</section>
+
+<section>
+<h2>Ключи</h2>
+<dl>
+  <dt>ssh-keygen -t ed25519 -C "комментарий"</dt>
+  <dd>Создать пару ключей; ed25519 — современный выбор</dd>
+  <dt>ssh-keygen -t rsa -b 4096</dt>
+  <dd>RSA, если требуется совместимость со старым сервером</dd>
+  <dt>ssh-copy-id -i ~/.ssh/id_ed25519.pub user@host</dt>
+  <dd>Положить открытый ключ в <code>~/.ssh/authorized_keys</code> на сервере</dd>
+  <dt>ssh-keygen -p -f ~/.ssh/id_ed25519</dt>
+  <dd>Сменить пароль на ключе</dd>
+  <dt>ssh-keygen -l -f ключ.pub</dt>
+  <dd>Отпечаток ключа — для сверки</dd>
+  <dt>ssh-keygen -R host</dt>
+  <dd>Убрать запись узла из <code>known_hosts</code> после переустановки сервера</dd>
+</dl>
+<p class="warn">Права важны: <code>~/.ssh</code> — 700, закрытый ключ — 600, <code>authorized_keys</code> — 600. При более широких правах SSH откажется работать.</p>
+</section>
+
+<section>
+<h2>Файл настроек клиента</h2>
+<pre># ~/.ssh/config
+Host prod
+    HostName 10.0.0.5
+    User deploy
+    Port 2222
+    IdentityFile ~/.ssh/id_prod
+    ServerAliveInterval 60
+
+Host *.internal
+    ProxyJump bastion
+
+Host bastion
+    HostName bastion.example.com
+    User admin
+
+Host *
+    AddKeysToAgent yes
+    HashKnownHosts yes</pre>
+<p class="note">После этого достаточно <code>ssh prod</code>. Настройки действуют и для <code>scp</code>, <code>rsync</code>, <code>git</code>.</p>
+</section>
+
+<section>
+<h2>Промежуточный узел</h2>
+<dl>
+  <dt>ssh -J bastion user@internal</dt>
+  <dd>Переход через бастион одной командой</dd>
+  <dt>ProxyJump bastion</dt>
+  <dd>То же в файле настроек</dd>
+  <dt>ssh -A user@host</dt>
+  <dd>Переадресация агента: ключи остаются на вашей машине</dd>
+</dl>
+<p class="warn">Переадресацию агента включайте только на доверенные узлы: администратор такого сервера может воспользоваться вашим агентом, пока вы подключены. ProxyJump безопаснее.</p>
+</section>
+
+<section>
+<h2>Проброс портов</h2>
+<dl>
+  <dt>ssh -L 5432:localhost:5432 user@host</dt>
+  <dd>Локальный проброс: порт удалённой базы доступен у вас как localhost:5432</dd>
+  <dt>ssh -L 8080:internal-web:80 user@bastion</dt>
+  <dd>Доступ к узлу внутренней сети через бастион</dd>
+  <dt>ssh -R 9000:localhost:3000 user@host</dt>
+  <dd>Обратный проброс: ваш локальный сервис виден на удалённой машине</dd>
+  <dt>ssh -D 1080 user@host</dt>
+  <dd>SOCKS-прокси: браузер ходит через удалённый узел</dd>
+  <dt>ssh -fN -L ...</dt>
+  <dd>В фоне и без запуска оболочки — только туннель</dd>
+</dl>
+</section>
+
+<section>
+<h2>Копирование файлов</h2>
+<dl>
+  <dt>scp file user@host:/path/</dt>
+  <dd>Загрузить файл</dd>
+  <dt>scp user@host:/path/file .</dt>
+  <dd>Скачать</dd>
+  <dt>scp -r каталог user@host:/path/</dt>
+  <dd>Каталог целиком</dd>
+  <dt>rsync -avz --progress src/ user@host:/dst/</dt>
+  <dd>Лучше для больших объёмов: докачивает и показывает ход</dd>
+  <dt>sftp user@host</dt>
+  <dd>Интерактивная передача: <code>get</code>, <code>put</code>, <code>ls</code></dd>
+  <dt>ssh user@host "tar -czf - /data" &gt; data.tar.gz</dt>
+  <dd>Архивирование на лету, без временных файлов на сервере</dd>
+</dl>
+</section>
+
+<section>
+<h2>Долгие сеансы</h2>
+<dl>
+  <dt>ServerAliveInterval 60 / ServerAliveCountMax 3</dt>
+  <dd>Не давать соединению отвалиться по тайм-ауту</dd>
+  <dt>ControlMaster auto, ControlPath ~/.ssh/cm-%r@%h:%p, ControlPersist 10m</dt>
+  <dd>Повторное использование соединения: следующие подключения открываются мгновенно</dd>
+  <dt>tmux или screen на сервере</dt>
+  <dd>Работа переживёт обрыв связи</dd>
+  <dt>mosh</dt>
+  <dd>Альтернативный клиент для нестабильной сети</dd>
+</dl>
+</section>
+
+<section>
+<h2>Настройка сервера</h2>
+<p class="note">Файл <code>/etc/ssh/sshd_config</code>, после правки — <code>sshd -t</code> для проверки и <code>systemctl reload sshd</code>.</p>
+<dl>
+  <dt>PermitRootLogin no</dt>
+  <dd>Запретить вход под root</dd>
+  <dt>PasswordAuthentication no</dt>
+  <dd>Только по ключам — главная мера против перебора</dd>
+  <dt>PubkeyAuthentication yes</dt>
+  <dd>Вход по ключу</dd>
+  <dt>AllowUsers deploy admin</dt>
+  <dd>Белый список учётных записей</dd>
+  <dt>Port 2222</dt>
+  <dd>Смена порта уменьшает шум в журналах, но не заменяет защиту</dd>
+  <dt>MaxAuthTries 3, LoginGraceTime 30</dt>
+  <dd>Ограничение попыток и времени на вход</dd>
+  <dt>AllowTcpForwarding no</dt>
+  <dd>Запрет туннелей, если они не нужны</dd>
+</dl>
+<p class="warn">Перед перезапуском службы оставьте открытым второй сеанс: ошибка в настройках иначе закроет доступ насовсем.</p>
+</section>
+
+<section>
+<h2>Разбор проблем</h2>
+<ul class="gloss">
+  <li><b>Permission denied (publickey)</b> — сервер не принял ключ: проверьте права на файлы, нужный ключ в <code>-i</code> и содержимое <code>authorized_keys</code>.</li>
+  <li><b>Connection refused</b> — служба не слушает порт или мешает межсетевой экран; <code>ss -ltnp</code> на сервере.</li>
+  <li><b>Connection timed out</b> — пакеты не доходят: маршрут, группы безопасности, VPN.</li>
+  <li><b>Host key verification failed</b> — ключ узла изменился; если сервер переустанавливали, уберите запись <code>ssh-keygen -R</code>, иначе разберитесь, почему.</li>
+  <li><b>Too many authentication failures</b> — агент перебирает все ключи; помогает <code>IdentitiesOnly yes</code> с явным <code>IdentityFile</code>.</li>
+  <li>Журнал сервера: <code>journalctl -u ssh -n 50</code> — там видно причину отказа.</li>
+</ul>
+</section>
+
+</div>
+
+<footer>Оригинальная шпаргалка на русском языке для репозитория 2web/cheat-sheet-pdf.</footer>
+</body>
+</html>

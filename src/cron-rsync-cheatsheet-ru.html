@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Шпаргалка по cron и rsync</title>
+<link rel="stylesheet" href="cheatsheet.css">
+</head>
+<body>
+<h1>Шпаргалка по cron и rsync</h1>
+<p class="lead">Две основы регулярного обслуживания: cron запускает задачи по расписанию, rsync переносит и синхронизирует файлы. Плюс таймеры systemd как современная замена cron.</p>
+
+<div class="cols">
+
+<section>
+<h2>cron: формат строки</h2>
+<pre>┌── минута (0–59)
+│ ┌── час (0–23)
+│ │ ┌── день месяца (1–31)
+│ │ │ ┌── месяц (1–12)
+│ │ │ │ ┌── день недели (0–7, 0 и 7 — вс)
+│ │ │ │ │
+* * * * *  команда</pre>
+<dl>
+  <dt>*/15 * * * *</dt>
+  <dd>Каждые 15 минут</dd>
+  <dt>0 3 * * *</dt>
+  <dd>Ежедневно в 03:00</dd>
+  <dt>0 3 * * 1</dt>
+  <dd>По понедельникам в 03:00</dd>
+  <dt>30 2 1 * *</dt>
+  <dd>Первого числа каждого месяца в 02:30</dd>
+  <dt>0 9-18 * * 1-5</dt>
+  <dd>Каждый час с 9 до 18 по будням</dd>
+  <dt>@reboot / @daily / @weekly</dt>
+  <dd>Сокращения: при загрузке, ежедневно, еженедельно</dd>
+</dl>
+</section>
+
+<section>
+<h2>cron: управление</h2>
+<dl>
+  <dt>crontab -e / -l / -r</dt>
+  <dd>Редактировать, показать, удалить задания пользователя</dd>
+  <dt>crontab -u deploy -l</dt>
+  <dd>Задания другого пользователя (нужны права)</dd>
+  <dt>/etc/crontab, /etc/cron.d/*</dt>
+  <dd>Системные задания: в них есть дополнительное поле — имя пользователя</dd>
+  <dt>/etc/cron.daily/</dt>
+  <dd>Каталоги для сценариев без указания времени</dd>
+  <dt>journalctl -u cron / grep CRON /var/log/syslog</dt>
+  <dd>Проверить, запускалось ли задание</dd>
+</dl>
+</section>
+
+<section>
+<h2>cron: подводные камни</h2>
+<ul class="gloss">
+  <li>Окружение бедное: <code>PATH</code> короткий, профиль оболочки не читается. Пишите полные пути или задавайте <code>PATH</code> в начале crontab.</li>
+  <li>Вывод уходит в почту, которой обычно нет. Перенаправляйте: <code>&gt;&gt; /var/log/job.log 2&gt;&amp;1</code>.</li>
+  <li>Знак <code>%</code> в команде имеет особое значение — экранируйте как <code>\%</code>.</li>
+  <li>Расписание в часовом поясе системы; при переходе на летнее время задания около двух ночи ведут себя странно.</li>
+  <li>Долгие задания могут наложиться друг на друга — оборачивайте в <code>flock -n /tmp/job.lock команда</code>.</li>
+  <li>Задание молча не работает — проверьте права на скрипт и наличие строки запуска в журнале.</li>
+</ul>
+<pre>PATH=/usr/local/bin:/usr/bin:/bin
+MAILTO=""
+
+*/10 * * * * flock -n /tmp/sync.lock /opt/app/sync.sh &gt;&gt; /var/log/sync.log 2&gt;&amp;1</pre>
+</section>
+
+<section>
+<h2>Таймеры systemd</h2>
+<pre># /etc/systemd/system/backup.service
+[Service]
+Type=oneshot
+ExecStart=/opt/scripts/backup.sh
+
+# /etc/systemd/system/backup.timer
+[Timer]
+OnCalendar=*-*-* 03:00:00
+RandomizedDelaySec=300
+Persistent=true
+
+[Install]
+WantedBy=timers.target</pre>
+<dl>
+  <dt>systemctl enable --now backup.timer</dt>
+  <dd>Включить таймер</dd>
+  <dt>systemctl list-timers</dt>
+  <dd>Когда что запускалось и запустится</dd>
+  <dt>journalctl -u backup.service</dt>
+  <dd>Вывод задания — собирается автоматически, перенаправлять не нужно</dd>
+  <dt>Persistent=true</dt>
+  <dd>Выполнить пропущенный запуск после включения машины</dd>
+</dl>
+</section>
+
+<section>
+<h2>rsync: основное</h2>
+<dl>
+  <dt>rsync -av src/ dst/</dt>
+  <dd>Копирование с сохранением прав, времени и ссылок</dd>
+  <dt>rsync -avz src/ user@host:/dst/</dt>
+  <dd>Через SSH со сжатием</dd>
+  <dt>rsync -av --dry-run src/ dst/</dt>
+  <dd>Показать, что произойдёт, ничего не меняя</dd>
+  <dt>rsync -av --progress больших_файлов/ dst/</dt>
+  <dd>Показывать ход передачи</dd>
+  <dt>rsync -av --delete src/ dst/</dt>
+  <dd>Удалить в приёмнике то, чего нет в источнике</dd>
+  <dt>rsync -av -e "ssh -p 2222" src/ user@host:/dst/</dt>
+  <dd>Нестандартный порт SSH</dd>
+</dl>
+<p class="warn"><b>Косая черта решает всё:</b> <code>src/</code> копирует содержимое каталога, <code>src</code> — сам каталог внутрь приёмника. Ошибка приводит к лишней вложенности или к записи не туда.</p>
+</section>
+
+<section>
+<h2>rsync: отбор файлов</h2>
+<dl>
+  <dt>--exclude '*.log' --exclude 'node_modules'</dt>
+  <dd>Исключить по маске</dd>
+  <dt>--exclude-from=.rsyncignore</dt>
+  <dd>Список исключений файлом</dd>
+  <dt>--include '*.conf' --exclude '*'</dt>
+  <dd>Взять только нужное: порядок правил важен</dd>
+  <dt>--max-size=100M / --min-size=1k</dt>
+  <dd>Ограничения по размеру</dd>
+  <dt>--files-from=list.txt</dt>
+  <dd>Передать только перечисленные пути</dd>
+</dl>
+</section>
+
+<section>
+<h2>rsync: полезные ключи</h2>
+<dl>
+  <dt>-a</dt>
+  <dd>Архивный режим: <code>-rlptgoD</code> — рекурсия, ссылки, права, время, владелец, группа</dd>
+  <dt>-z / --compress-level=9</dt>
+  <dd>Сжатие в канале</dd>
+  <dt>-P</dt>
+  <dd>То же, что <code>--partial --progress</code>: докачка прерванного</dd>
+  <dt>--bwlimit=5000</dt>
+  <dd>Ограничить скорость, КБ/с</dd>
+  <dt>--checksum</dt>
+  <dd>Сравнивать по контрольной сумме, а не по размеру и времени — медленнее, но надёжнее</dd>
+  <dt>--backup --backup-dir=/backup/$(date +%F)</dt>
+  <dd>Сохранять заменяемые файлы</dd>
+  <dt>--link-dest=/backup/prev</dt>
+  <dd>Инкрементные копии: неизменённые файлы связываются жёсткой ссылкой и не занимают места</dd>
+  <dt>--numeric-ids</dt>
+  <dd>Не преобразовывать идентификаторы владельцев — для переноса между системами</dd>
+</dl>
+</section>
+
+<section>
+<h2>Рецепты</h2>
+<pre># Выкладка сайта: удалить лишнее, не трогать загрузки пользователей
+rsync -avz --delete --exclude 'uploads/' ./dist/ user@host:/var/www/site/
+
+# Ежедневная инкрементная копия
+rsync -a --delete --link-dest=/backup/latest /data/ /backup/$(date +%F)/
+ln -sfn /backup/$(date +%F) /backup/latest
+
+# Перенос каталога между серверами через бастион
+rsync -avz -e "ssh -J bastion" /data/ user@internal:/data/
+
+# Проверка перед опасной синхронизацией
+rsync -avn --delete src/ dst/ | head -50</pre>
+</section>
+
+<section>
+<h2>Что помнить</h2>
+<ul class="gloss">
+  <li>Любую команду с <code>--delete</code> сначала запускайте с <code>-n</code>: это единственная защита от потери данных.</li>
+  <li>rsync передаёт только изменившиеся части файлов — поэтому он выигрывает у <code>scp</code> на повторных запусках.</li>
+  <li>Права и владельцы сохраняются только при достаточных правах на приёмнике; иначе используйте <code>--no-owner --no-group</code>.</li>
+  <li>Для регулярной синхронизации по расписанию сочетайте cron (или таймер systemd), <code>flock</code> и запись вывода в журнал.</li>
+  <li>Копия считается рабочей только после пробного восстановления — проверяйте её регулярно.</li>
+</ul>
+</section>
+
+</div>
+
+<footer>Оригинальная шпаргалка на русском языке для репозитория 2web/cheat-sheet-pdf.</footer>
+</body>
+</html>

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Шпаргалка по cURL</title>
+<link rel="stylesheet" href="cheatsheet.css">
+</head>
+<body>
+<h1>Шпаргалка по cURL</h1>
+<p class="lead">Запросы к API и сайтам из командной строки: методы и данные, заголовки и аутентификация, загрузка файлов, куки, прокси и TLS, измерение времени, отладка.</p>
+
+<div class="cols">
+
+<section>
+<h2>Основное</h2>
+<dl>
+  <dt>curl https://example.com</dt>
+  <dd>Вывести тело ответа</dd>
+  <dt>curl -I URL</dt>
+  <dd>Только заголовки (запрос HEAD)</dd>
+  <dt>curl -i URL</dt>
+  <dd>Заголовки вместе с телом</dd>
+  <dt>curl -v URL</dt>
+  <dd>Подробный ход запроса: соединение, TLS, заголовки</dd>
+  <dt>curl -s URL</dt>
+  <dd>Без индикатора загрузки; <code>-sS</code> — тихо, но с ошибками</dd>
+  <dt>curl -L URL</dt>
+  <dd>Следовать перенаправлениям</dd>
+  <dt>curl -o file.zip URL / -O</dt>
+  <dd>Сохранить в файл; с именем из URL</dd>
+  <dt>curl -f URL</dt>
+  <dd>Вернуть ненулевой код при ответе 4xx и 5xx — важно в сценариях</dd>
+</dl>
+</section>
+
+<section>
+<h2>Методы и данные</h2>
+<dl>
+  <dt>curl -X POST URL</dt>
+  <dd>Явный метод (при <code>-d</code> POST подставляется сам)</dd>
+  <dt>curl -d '{"a":1}' -H "Content-Type: application/json" URL</dt>
+  <dd>Тело в формате JSON</dd>
+  <dt>curl -d @body.json URL</dt>
+  <dd>Тело из файла</dd>
+  <dt>curl -d "user=ann&amp;id=7" URL</dt>
+  <dd>Данные формы</dd>
+  <dt>curl --json '{"a":1}' URL</dt>
+  <dd>Короткая запись: ставит и заголовки, и тело (curl 7.82+)</dd>
+  <dt>curl -X DELETE URL</dt>
+  <dd>Удаление</dd>
+  <dt>curl -G -d "q=поиск" -d "page=2" URL</dt>
+  <dd>Собрать строку запроса для GET</dd>
+  <dt>curl --data-urlencode "q=текст с пробелами" URL</dt>
+  <dd>Кодирование значения</dd>
+</dl>
+</section>
+
+<section>
+<h2>Заголовки и доступ</h2>
+<dl>
+  <dt>-H "Authorization: Bearer $TOKEN"</dt>
+  <dd>Маркер доступа</dd>
+  <dt>-H "Accept: application/json"</dt>
+  <dd>Желаемый формат ответа</dd>
+  <dt>-u user:password</dt>
+  <dd>Базовая аутентификация (пароль лучше вводить по запросу: <code>-u user</code>)</dd>
+  <dt>-H "X-Request-Id: 123"</dt>
+  <dd>Произвольный заголовок</dd>
+  <dt>-A "MyAgent/1.0" / -e https://ref.example</dt>
+  <dd>User-Agent и Referer</dd>
+  <dt>--oauth2-bearer $TOKEN</dt>
+  <dd>То же, что заголовок Authorization</dd>
+</dl>
+<p class="warn">Секреты в командной строке видны в списке процессов и в истории оболочки. Передавайте их через переменную окружения или <code>-H @файл</code>.</p>
+</section>
+
+<section>
+<h2>Файлы и куки</h2>
+<dl>
+  <dt>curl -F "file=@photo.jpg" -F "title=Фото" URL</dt>
+  <dd>Отправка формы с файлом</dd>
+  <dt>curl -T file.txt ftp://host/path/</dt>
+  <dd>Загрузка методом PUT</dd>
+  <dt>curl -C - -O URL</dt>
+  <dd>Продолжить прерванную загрузку</dd>
+  <dt>curl -c cookies.txt -b cookies.txt URL</dt>
+  <dd>Сохранить и отправлять куки — так проходят сценарии со входом</dd>
+  <dt>curl --limit-rate 500k URL</dt>
+  <dd>Ограничить скорость</dd>
+</dl>
+</section>
+
+<section>
+<h2>Время и повторы</h2>
+<dl>
+  <dt>--max-time 30 / --connect-timeout 5</dt>
+  <dd>Предел на весь запрос и на установку соединения</dd>
+  <dt>--retry 3 --retry-delay 2</dt>
+  <dd>Повторы при сетевых сбоях и ответах 5xx</dd>
+  <dt>--retry-all-errors</dt>
+  <dd>Повторять при любой ошибке</dd>
+  <dt>-w "%{http_code} %{time_total}\n" -o /dev/null -s URL</dt>
+  <dd>Код ответа и общее время без вывода тела</dd>
+  <dt>-w "@format.txt"</dt>
+  <dd>Разбор по этапам: <code>time_namelookup</code>, <code>time_connect</code>, <code>time_appconnect</code>, <code>time_starttransfer</code></dd>
+</dl>
+</section>
+
+<section>
+<h2>TLS, прокси, адреса</h2>
+<dl>
+  <dt>--cacert ca.pem / --cert client.pem --key client.key</dt>
+  <dd>Свой удостоверяющий центр; клиентский сертификат</dd>
+  <dt>-k</dt>
+  <dd>Не проверять сертификат — только для отладки, никогда в рабочих сценариях</dd>
+  <dt>--resolve example.com:443:10.0.0.5</dt>
+  <dd>Подставить адрес, минуя DNS: проверка нового сервера до переключения записи</dd>
+  <dt>-x http://proxy:3128 / --proxy-user u:p</dt>
+  <dd>Прокси и доступ к нему</dd>
+  <dt>--interface eth1</dt>
+  <dd>Отправить запрос с конкретного интерфейса</dd>
+  <dt>--http2 / --http1.1</dt>
+  <dd>Версия протокола</dd>
+</dl>
+</section>
+
+<section>
+<h2>Рецепты</h2>
+<pre># Проверка доступности в сценарии
+if ! curl -fsS --max-time 5 https://api/health &gt; /dev/null; then
+    echo "сервис недоступен" &gt;&amp;2
+    exit 1
+fi
+
+# Красивый JSON
+curl -s https://api/users | jq '.[] | {id, name}'
+
+# Замер по этапам
+curl -s -o /dev/null -w "dns=%{time_namelookup} tls=%{time_appconnect} ttfb=%{time_starttransfer} total=%{time_total}\n" URL
+
+# Скачать список ссылок
+xargs -n1 -P4 curl -sO &lt; urls.txt
+
+# Отправить содержимое файла как JSON
+curl -X POST -H "Content-Type: application/json" --data-binary @payload.json URL</pre>
+</section>
+
+<section>
+<h2>Полезно знать</h2>
+<ul class="gloss">
+  <li>В средствах разработчика браузера у запроса есть пункт «Копировать как cURL» — быстрый способ воспроизвести обращение.</li>
+  <li><code>-f</code> и <code>--max-time</code> обязательны в сценариях: без них молчаливый провал легко пропустить.</li>
+  <li>Одинарные кавычки вокруг JSON защищают его от подстановок оболочки.</li>
+  <li>По умолчанию curl не следует перенаправлениям — отсюда «пустые» ответы 301 и 302.</li>
+  <li>Для повторяемых наборов запросов держите файл с параметрами: <code>curl --config req.txt</code>.</li>
+</ul>
+</section>
+
+</div>
+
+<footer>Оригинальная шпаргалка на русском языке для репозитория 2web/cheat-sheet-pdf.</footer>
+</body>
+</html>
