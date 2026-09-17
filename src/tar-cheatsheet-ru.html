@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Шпаргалка по tar и архивам</title>
+<link rel="stylesheet" href="cheatsheet.css">
+</head>
+<body>
+<h1>Шпаргалка по tar и архивам</h1>
+<p class="lead">Создание и распаковка архивов, выбор сжатия, работа с отдельными файлами, передача архива по сети, а также zip и другие форматы.</p>
+
+<div class="cols">
+
+<section>
+<h2>Ключи в двух словах</h2>
+<dl>
+  <dt>-c / -x / -t</dt>
+  <dd>Создать, распаковать, показать содержимое</dd>
+  <dt>-f файл</dt>
+  <dd>Имя архива; идёт последним среди ключей</dd>
+  <dt>-v</dt>
+  <dd>Показывать имена файлов</dd>
+  <dt>-z / -j / -J</dt>
+  <dd>Сжатие gzip, bzip2, xz</dd>
+  <dt>-C каталог</dt>
+  <dd>Перейти в каталог перед работой</dd>
+  <dt>--exclude=шаблон</dt>
+  <dd>Пропустить файлы по маске</dd>
+</dl>
+<p class="note">Мнемоника: <b>c</b>reate, e<b>x</b>tract, lis<b>t</b>; <b>z</b>ip-сжатие, <b>v</b>erbose, <b>f</b>ile.</p>
+</section>
+
+<section>
+<h2>Создать архив</h2>
+<dl>
+  <dt>tar -czf arc.tar.gz каталог</dt>
+  <dd>Сжатый gzip — самый ходовой вариант</dd>
+  <dt>tar -cJf arc.tar.xz каталог</dt>
+  <dd>Сильнее сжатие, дольше упаковка</dd>
+  <dt>tar -cf arc.tar каталог</dt>
+  <dd>Без сжатия: быстро, годится для уже сжатых данных</dd>
+  <dt>tar -czf arc.tar.gz -C /var/www site</dt>
+  <dd>Упаковать без длинного пути внутри архива</dd>
+  <dt>tar -czf arc.tar.gz --exclude='*.log' --exclude='.git' проект</dt>
+  <dd>С исключениями</dd>
+  <dt>tar -czf arc.tar.gz -T list.txt</dt>
+  <dd>Список файлов из файла</dd>
+  <dt>tar --exclude-vcs -czf arc.tar.gz проект</dt>
+  <dd>Пропустить служебные каталоги систем контроля версий</dd>
+</dl>
+</section>
+
+<section>
+<h2>Распаковать</h2>
+<dl>
+  <dt>tar -xzf arc.tar.gz</dt>
+  <dd>В текущий каталог</dd>
+  <dt>tar -xzf arc.tar.gz -C /opt/app</dt>
+  <dd>В указанный каталог (он должен существовать)</dd>
+  <dt>tar -xzf arc.tar.gz path/to/file</dt>
+  <dd>Только один файл или каталог</dd>
+  <dt>tar -xzf arc.tar.gz --strip-components=1</dt>
+  <dd>Отбросить верхний уровень: частая нужда при распаковке релизов</dd>
+  <dt>tar -xzf arc.tar.gz --keep-newer-files</dt>
+  <dd>Не перезаписывать более свежие файлы</dd>
+  <dt>tar -xzf arc.tar.gz --wildcards '*.conf'</dt>
+  <dd>Распаковать по маске</dd>
+</dl>
+<p class="warn">Перед распаковкой в общий каталог загляните внутрь: <code>tar -tzf arc.tar.gz | head</code>. Архивы бывают «без корня» и рассыпают файлы по текущему каталогу.</p>
+</section>
+
+<section>
+<h2>Посмотреть и проверить</h2>
+<dl>
+  <dt>tar -tzf arc.tar.gz</dt>
+  <dd>Список содержимого</dd>
+  <dt>tar -tvzf arc.tar.gz</dt>
+  <dd>С правами, владельцем и размером</dd>
+  <dt>tar -tzf arc.tar.gz | wc -l</dt>
+  <dd>Сколько файлов внутри</dd>
+  <dt>gzip -t arc.tar.gz</dt>
+  <dd>Проверить целостность сжатия</dd>
+  <dt>tar -df arc.tar -C /path</dt>
+  <dd>Сравнить архив с файлами на диске</dd>
+</dl>
+</section>
+
+<section>
+<h2>Полезные приёмы</h2>
+<pre># Архив с датой в имени
+tar -czf backup-$(date +%F).tar.gz /data
+
+# Копия каталога на другой сервер без промежуточного файла
+tar -czf - /data | ssh user@host "tar -xzf - -C /restore"
+
+# Забрать каталог с сервера
+ssh user@host "tar -czf - /var/www" &gt; site.tar.gz
+
+# Многопоточное сжатие (быстрее на многоядерных машинах)
+tar -cf - /data | pigz -p 8 &gt; data.tar.gz
+
+# Добавить файл в существующий несжатый архив
+tar -rf arc.tar newfile.txt
+
+# Сохранить права и владельцев при распаковке от root
+tar -xzpf arc.tar.gz --same-owner</pre>
+</section>
+
+<section>
+<h2>Другие форматы</h2>
+<dl>
+  <dt>zip -r arc.zip каталог / unzip arc.zip</dt>
+  <dd>Обмен с Windows; <code>unzip -l</code> — просмотр, <code>-d</code> — каталог назначения</dd>
+  <dt>gzip файл / gunzip файл.gz</dt>
+  <dd>Сжатие одного файла на месте</dd>
+  <dt>xz -9 файл / unxz</dt>
+  <dd>Сильное сжатие</dd>
+  <dt>zstd файл / unzstd</dt>
+  <dd>Современный вариант: быстрее xz при похожем сжатии</dd>
+  <dt>7z a arc.7z каталог</dt>
+  <dd>Формат 7-Zip, если нужен именно он</dd>
+</dl>
+</section>
+
+<section>
+<h2>Что помнить</h2>
+<ul class="gloss">
+  <li>Имя архива идёт сразу после <code>-f</code>; перестановка — источник загадочных ошибок.</li>
+  <li>Абсолютные пути tar по умолчанию обрезает и предупреждает об этом: файлы распакуются относительно текущего каталога.</li>
+  <li>Права и владельцы сохраняются, но восстановить чужого владельца может только root.</li>
+  <li>Сжимать уже сжатое (видео, изображения, архивы) почти бесполезно — берите <code>-cf</code> без сжатия.</li>
+  <li>Для регулярных копий каталогов rsync с <code>--link-dest</code> экономнее, чем полный архив каждый раз.</li>
+  <li>Распаковка из недоверенного источника: проверьте список файлов, чтобы архив не записал что-то мимо ожидаемого каталога.</li>
+</ul>
+</section>
+
+</div>
+
+<footer>Оригинальная шпаргалка на русском языке для репозитория 2web/cheat-sheet-pdf.</footer>
+</body>
+</html>

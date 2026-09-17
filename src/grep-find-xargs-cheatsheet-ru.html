@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Шпаргалка по grep, find и xargs</title>
+<link rel="stylesheet" href="cheatsheet.css">
+</head>
+<body>
+<h1>Шпаргалка по grep, find и xargs</h1>
+<p class="lead">Три утилиты, которые чаще всего работают вместе: grep ищет по содержимому, find — по свойствам файлов, xargs превращает найденное в аргументы команд.</p>
+
+<div class="cols">
+
+<section>
+<h2>grep: основное</h2>
+<dl>
+  <dt>grep "текст" файл</dt>
+  <dd>Строки с совпадением</dd>
+  <dt>grep -i</dt>
+  <dd>Без учёта регистра</dd>
+  <dt>grep -n</dt>
+  <dd>С номерами строк</dd>
+  <dt>grep -v</dt>
+  <dd>Наоборот: строки без совпадения</dd>
+  <dt>grep -c</dt>
+  <dd>Только количество совпадений</dd>
+  <dt>grep -l / -L</dt>
+  <dd>Имена файлов, где есть совпадение; где его нет</dd>
+  <dt>grep -w / -x</dt>
+  <dd>Совпадение целым словом; строкой целиком</dd>
+  <dt>grep -o</dt>
+  <dd>Вывести только совпавшую часть</dd>
+  <dt>grep -q</dt>
+  <dd>Молча: важен только код возврата, удобно в условиях</dd>
+</dl>
+</section>
+
+<section>
+<h2>grep: поиск по дереву</h2>
+<dl>
+  <dt>grep -rn "шаблон" /etc</dt>
+  <dd>Рекурсивно с номерами строк</dd>
+  <dt>grep -rn --include="*.py" "def " .</dt>
+  <dd>Только в файлах по маске</dd>
+  <dt>grep -rn --exclude-dir={.git,node_modules} "TODO" .</dt>
+  <dd>Пропустить каталоги</dd>
+  <dt>grep -A3 -B2 "ошибка" app.log</dt>
+  <dd>Три строки после и две до совпадения (<code>-C2</code> — по две с обеих сторон)</dd>
+  <dt>grep -E "ошибка|сбой|отказ"</dt>
+  <dd>Расширенные выражения: альтернативы, <code>+</code>, <code>{n,m}</code></dd>
+  <dt>grep -F "строка.с.точками"</dt>
+  <dd>Искать как обычный текст, без регулярных выражений</dd>
+  <dt>grep -P "\d{3}-\d{2}"</dt>
+  <dd>Синтаксис PCRE, если grep собран с его поддержкой</dd>
+  <dt>zgrep "шаблон" app.log.gz</dt>
+  <dd>Поиск прямо в сжатых журналах</dd>
+</dl>
+</section>
+
+<section>
+<h2>find: где искать и что</h2>
+<dl>
+  <dt>find /var/log -name "*.log"</dt>
+  <dd>По имени (<code>-iname</code> — без учёта регистра)</dd>
+  <dt>find . -type f / -type d / -type l</dt>
+  <dd>Только файлы, каталоги или ссылки</dd>
+  <dt>find . -maxdepth 2</dt>
+  <dd>Ограничить глубину обхода</dd>
+  <dt>find . -path "*/test/*" -prune -o -print</dt>
+  <dd>Пропустить ветку дерева</dd>
+  <dt>find . -xdev</dt>
+  <dd>Не выходить за пределы одной файловой системы</dd>
+  <dt>find . -empty</dt>
+  <dd>Пустые файлы и каталоги</dd>
+</dl>
+</section>
+
+<section>
+<h2>find: отбор</h2>
+<dl>
+  <dt>-size +100M / -size -1k</dt>
+  <dd>Больше и меньше указанного</dd>
+  <dt>-mtime -7 / -mtime +30</dt>
+  <dd>Изменён за последнюю неделю; старше месяца</dd>
+  <dt>-mmin -60</dt>
+  <dd>Изменён за последний час</dd>
+  <dt>-newer файл</dt>
+  <dd>Новее указанного файла</dd>
+  <dt>-user deploy / -group www-data</dt>
+  <dd>По владельцу и группе</dd>
+  <dt>-perm -u+w / -perm 600</dt>
+  <dd>По правам доступа</dd>
+  <dt>\( -name "*.log" -o -name "*.tmp" \)</dt>
+  <dd>Объединение условий: <code>-o</code> — или, по умолчанию — и</dd>
+  <dt>! -name "*.gz"</dt>
+  <dd>Отрицание</dd>
+</dl>
+</section>
+
+<section>
+<h2>find: что делать с найденным</h2>
+<dl>
+  <dt>-print / -print0</dt>
+  <dd>Вывести путь; через нулевой байт — безопасно для имён с пробелами</dd>
+  <dt>-delete</dt>
+  <dd>Удалить найденное. Сначала посмотрите список без этого ключа</dd>
+  <dt>-exec команда {} \;</dt>
+  <dd>Запуск для каждого файла отдельно</dd>
+  <dt>-exec команда {} +</dt>
+  <dd>Пакетами: заметно быстрее</dd>
+  <dt>-execdir команда {} \;</dt>
+  <dd>Запуск в каталоге файла — надёжнее при странных именах</dd>
+  <dt>-ls</dt>
+  <dd>Подробный список, как <code>ls -l</code></dd>
+</dl>
+</section>
+
+<section>
+<h2>xargs</h2>
+<dl>
+  <dt>... | xargs команда</dt>
+  <dd>Превратить строки ввода в аргументы</dd>
+  <dt>-0</dt>
+  <dd>Ввод разделён нулевыми байтами — пара к <code>find -print0</code></dd>
+  <dt>-n 1</dt>
+  <dd>По одному аргументу на запуск</dd>
+  <dt>-P 4</dt>
+  <dd>Четыре процесса параллельно</dd>
+  <dt>-I {}</dt>
+  <dd>Подставить аргумент в нужное место: <code>xargs -I {} mv {} /dst/</code></dd>
+  <dt>-r</dt>
+  <dd>Не запускать команду при пустом вводе</dd>
+  <dt>-p / -t</dt>
+  <dd>Спрашивать подтверждение; печатать команду перед запуском</dd>
+  <dt>-d '\n'</dt>
+  <dd>Свой разделитель</dd>
+</dl>
+</section>
+
+<section>
+<h2>Связки</h2>
+<pre># Найти и упаковать старые журналы
+find /var/log -name "*.log" -mtime +7 -print0 |
+    xargs -0 -P4 gzip
+
+# Заменить строку во всех файлах проекта
+grep -rl "старый_домен" --include="*.conf" . |
+    xargs sed -i 's/старый_домен/новый_домен/g'
+
+# Удалить пустые каталоги снизу вверх
+find . -type d -empty -delete
+
+# Кто занимает место: топ-20 файлов
+find / -xdev -type f -printf '%s %p\n' 2&gt;/dev/null |
+    sort -rn | head -20
+
+# Поиск текста только в изменённых за сутки файлах
+find . -type f -mtime -1 -print0 |
+    xargs -0 grep -n "ошибка"
+
+# Посчитать строки кода без учёта служебных каталогов
+find . -name "*.py" -not -path "*/.venv/*" -print0 |
+    xargs -0 wc -l | tail -1</pre>
+</section>
+
+<section>
+<h2>Что помнить</h2>
+<ul class="gloss">
+  <li>Имена с пробелами и переводами строк ломают простые конвейеры: связка <code>-print0</code> и <code>xargs -0</code> — привычка по умолчанию.</li>
+  <li>Любую команду с <code>-delete</code> или <code>rm</code> сначала выполните без них и просмотрите список.</li>
+  <li><code>-exec … +</code> быстрее, чем <code>\;</code>: меньше запусков процесса.</li>
+  <li>Для больших репозиториев <code>ripgrep</code> (<code>rg</code>) быстрее grep и сам пропускает игнорируемое git.</li>
+  <li>Порядок условий в find влияет на скорость: сперва дешёвые проверки (<code>-type f</code>, <code>-name</code>), затем дорогие.</li>
+</ul>
+</section>
+
+</div>
+
+<footer>Оригинальная шпаргалка на русском языке для репозитория 2web/cheat-sheet-pdf.</footer>
+</body>
+</html>
